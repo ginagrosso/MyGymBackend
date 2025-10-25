@@ -1,0 +1,15 @@
+{
+  "name": "mygymbackend",
+  "version": "1.0.0",
+  "description": "proyecto de Programacion4 - TUP",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3"
+  }
+}
