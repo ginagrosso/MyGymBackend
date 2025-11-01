@@ -1,4 +1,5 @@
 const {initializeApp, getApp, getApps, cert } = require("firebase-admin/app");
+const { getDatabase } = require("firebase-admin/database");
 
 require("dotenv").config(); // Carga el .env directamente aquí
 
@@ -12,4 +13,7 @@ if (getApps().length === 0) {
 } else {
     firebaseAdmin = getApp();
 }
-module.exports = { firebaseAdmin };
+
+// Obtener la instancia de la base de datos que será usada por el Repositorio
+const db = getDatabase(firebaseAdmin); 
+module.exports = { firebaseAdmin, db };

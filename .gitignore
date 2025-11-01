@@ -64,8 +64,11 @@ node_modules/
 
 # dotenv environment variables file
 .env
+.env.*
 
 # dataconnect generated files
 .dataconnect
 
 permissions/
+
+pasos.md

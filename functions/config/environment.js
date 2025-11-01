@@ -1,8 +1,8 @@
 let nodeEnv = process.env.NODE_ENV || 'default';
 
 try {
-    const functions = required('firebase-functions');
-    if(functions.config() && functions.config().environment?.node_env) {
+    const functions = require('firebase-functions');
+    if(functions.config() && functions.config().environment.node_env) {
         nodeEnv = functions.config().environment.node_env;
     }
 } catch (error) {
