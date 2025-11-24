@@ -4,7 +4,6 @@
 
 const userRepository = require('../../repositories/users.repository');
 const userSchema = require('../../schemas/user.schema');
-const gymsRepository = require('../../repositories/gyms.repository');
 
 // funcion registarr usuario
 const registerUser = async (data) => {
