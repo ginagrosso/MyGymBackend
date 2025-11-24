@@ -3,7 +3,7 @@ const { db, firebaseAdmin } = require('../utils/firebase');
 
 // Crear usuario en Firebase Auth
 const createUserAuth = async (email, password) => {
-    console.log(`REPO. Creando el usuario en Auth: ${email}`);
+    console.log(`REPO. Creando el usuario en Firebase Auth: ${email}`);
 
     const userRecord = await firebaseAdmin.auth().createUser({email: email, password: password});
 
