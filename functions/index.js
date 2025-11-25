@@ -49,5 +49,4 @@ exports.routines = require('./modules/routines');
 exports.streaks = require('./modules/streaks');
 exports.classes = require('./modules/classes');
 
-module.exports = functions.https.onRequest(app);
 

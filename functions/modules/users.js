@@ -1,8 +1,35 @@
-//functions/modules/users.js
-//Importar express, cors, y el pasamano userService.
-//Crear la app de Express: const app = express();.
-//Endpoint POST /register: (Para register.tsx) Llama a userService.registerUser(req.body).
-//Endpoint GET /profile/:uid: (Para perfil.tsx) Llama a userService.getUserProfile(req.params.uid).
-//Endpoint PUT /profile/:uid: (Para EditProfile.tsx) Llama a userService.updateUserProfile(req.params.uid, req.body).
-//Endpoint PUT /select-type/:uid: (Para user-type-selection.tsx) Llama a userService.setUserType(req.params.uid, req.body).
-//Exportar app.
+require('../config/environment');
+const express = require('express');
+const cors = require('cors');
+const userService = require('../src/services/users.service');
+const functions = require('firebase-functions');
+const loggingMiddleware = require('../src/middlewares/logging.middleware');
+const { getSuccessResponseObject, getErrorResponseObject } = require('../src/utils/responseHelpers');
+const { httpStatusCodes } = require('../src/utils/httpStatusCodes');
+
+const app = express();
+
+app.use(cors({
+    origin: ['http://localhost:3000', 'https://your-production-domain.com'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
+app.use(express.json());
+
+app.use(loggingMiddleware);
+
+app.post('/auth/register/client', async (req, res) => {
+    try {
+        const nuevoCliente = await userService.registerClient(req.body);
+        const response = getSuccessResponseObject(nuevoCliente, 'Cliente registrado con éxito');
+        return res.status(httpStatusCodes.created).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
+
+module.exports = functions.https.onRequest(app);
