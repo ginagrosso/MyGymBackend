@@ -93,5 +93,37 @@ app.get("/history", async (req, res) => {
     }
 });
 
+/**
+ * ENDPOINT: Estado de Cuenta (¿Debe plata?)
+ * RUTA: GET /status
+ * USO: /status?userId=usuario_test_01
+ */
+app.get("/status", async (req, res) => {
+    try {
+        const { userId } = req.query;
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "Falta el parámetro userId"
+            });
+        }
+
+        const status = await paymentService.getUserPaymentStatus(userId);
+
+        return res.status(200).json({
+            success: true,
+            data: status
+        });
+
+    } catch (err) {
+        console.error("Error obteniendo estado:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Error interno al calcular el estado de cuenta."
+        });
+    }
+});
+
 // Exportar la app para que Firebase la use como Cloud Function
 module.exports = app;
