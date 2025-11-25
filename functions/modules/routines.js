@@ -19,6 +19,7 @@ const { logProgress } = require('../src/services/routines/logProgress.service');
 const app = express();
 
 // Middlewares
+//cors permite cualquier origen, cambiar en producción
 app.use(cors({ origin: true }));
 app.use(express.json());
 

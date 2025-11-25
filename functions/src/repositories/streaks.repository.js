@@ -27,7 +27,6 @@ const getAllUserCheckInsFromDB = async (userId) => {
     const snapshot = await checkInsRef.orderByKey().once('value');
     
     const checkIns = snapshot.val();
-    console.log(`Check-ins encontrados:`, checkIns);
     return checkIns || {};
 };
 

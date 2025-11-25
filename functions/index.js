@@ -42,7 +42,7 @@ const functions = require("firebase-functions");
 
 //exports.users = require('./modules/users');
 //exports.gyms = require('./modules/gyms');
-//exports.memberships = require('./modules/memberships');
+exports.registrations = require('./modules/registrations');
 //exports.payments = require('./modules/payments');
 exports.exercises = require('./modules/exercises');
 exports.routines = require('./modules/routines');

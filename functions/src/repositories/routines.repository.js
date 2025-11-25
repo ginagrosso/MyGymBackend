@@ -105,7 +105,6 @@ const getUserActiveRoutineIdFromDB = async (userId) => {
     const snapshot = await db.ref(`userRoutines/${userId}/activeRoutineId`).once('value');
     const routineId = snapshot.val();
     
-    console.log(`Rutina activa: ${routineId}`);
     return routineId;
 };
 

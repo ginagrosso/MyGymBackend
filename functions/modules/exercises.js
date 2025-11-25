@@ -16,6 +16,7 @@ const { updateExercise, archiveExercise } = require('../src/services/exercises/u
 const app = express();
 
 // Middlewares
+//cors permite cualquier origen, cambiar en producción
 app.use(cors({ origin: true }));
 app.use(express.json());
 
@@ -23,9 +24,7 @@ app.use(express.json());
  * POST /
  * Crear ejercicio personalizado
  */
-app.post('/', async (req, res) => {
-    console.log('=== POST /exercises ===');
-    console.log('Body recibido:', req.body);
+app.post('/create', async (req, res) => {
     
     try {
         const { gymId, ...exerciseData } = req.body;
@@ -59,9 +58,7 @@ app.post('/', async (req, res) => {
  * Obtener todos los ejercicios de un gym
  */
 app.get('/gym/:gymId', async (req, res) => {
-    console.log('=== GET /exercises/gym/:gymId ===');
-    console.log('Params:', req.params);
-    
+
     try {
         const { gymId } = req.params;
         const exercises = await getGymExercises(gymId);
@@ -86,8 +83,6 @@ app.get('/gym/:gymId', async (req, res) => {
  * Obtener detalles de un ejercicio específico
  */
 app.get('/:gymId/:exerciseId', async (req, res) => {
-    console.log('=== GET /exercises/:gymId/:exerciseId ===');
-    console.log('Params:', req.params);
     
     try {
         const { gymId, exerciseId } = req.params;
@@ -112,9 +107,6 @@ app.get('/:gymId/:exerciseId', async (req, res) => {
  * Actualizar ejercicio
  */
 app.put('/:gymId/:exerciseId', async (req, res) => {
-    console.log('=== PUT /exercises/:gymId/:exerciseId ===');
-    console.log('Params:', req.params);
-    console.log('Body:', req.body);
     
     try {
         const { gymId, exerciseId } = req.params;
@@ -140,8 +132,6 @@ app.put('/:gymId/:exerciseId', async (req, res) => {
  * Archivar ejercicio (soft delete)
  */
 app.delete('/:gymId/:exerciseId', async (req, res) => {
-    console.log('=== DELETE /exercises/:gymId/:exerciseId ===');
-    console.log('Params:', req.params);
     
     try {
         const { gymId, exerciseId } = req.params;

@@ -8,7 +8,6 @@ const exercisesRepository = require('../../repositories/exercises.repository');
 const { createExerciseSchema } = require('../../schemas/exercise.schema');
 
 const createCustomExercise = async (gymId, data) => {
-    console.log(`SERVICIO. Creando ejercicio personalizado para gym ${gymId}`);
     
     try {
         // Validar datos

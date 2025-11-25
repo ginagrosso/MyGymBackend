@@ -7,6 +7,7 @@ const { getUserStreak } = require('../src/services/streaks/readStreak.service');
 const app = express();
 
 // Middlewares
+//cors permite cualquier origen, cambiar en producción
 app.use(cors({ origin: true }));
 app.use(express.json());
 

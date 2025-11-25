@@ -8,25 +8,52 @@
 
 const exercisesRepository = require('../../repositories/exercises.repository');
 
+/**
+ * Obtener todos los ejercicios de un gimnasio
+ */
 const getGymExercises = async (gymId) => {
-    console.log(`SERVICIO. Obteniendo ejercicios del gym ${gymId}`);
+    console.log(`SERVICE. Obteniendo ejercicios del gym ${gymId}`);
     
     try {
-        const exercises = await exercisesRepository.getGymExercisesFromDB(gymId);
+        if (!gymId) {
+            throw new Error('El gymId es requerido');
+        }
         
-        console.log(`Ejercicios obtenidos exitosamente`);
-        return exercises;
+        const exercisesObj = await exercisesRepository.getGymExercisesFromDB(gymId);
+        
+        // Si no hay ejercicios, retornar array vacío
+        if (!exercisesObj || Object.keys(exercisesObj).length === 0) {
+            console.log(`SERVICE. No se encontraron ejercicios para el gym ${gymId}`);
+            return [];
+        }
+        
+        // Convertir objeto a array
+        const exercisesArray = Object.entries(exercisesObj).map(([key, value]) => ({
+            id: key,
+            ...value
+        }));
+        
+        console.log(`SERVICE. Se encontraron ${exercisesArray.length} ejercicios`);
+        
+        return exercisesArray;
         
     } catch (error) {
-        console.log(`SERVICIO. Error obteniendo ejercicios:`, error.message);
+        console.error(`SERVICE. Error obteniendo ejercicios:`, error.message);
         throw error;
     }
 };
 
+/**
+ * Obtener detalles de un ejercicio específico
+ */
 const getExerciseDetails = async (gymId, exerciseId) => {
-    console.log(`SERVICIO. Obteniendo detalles del ejercicio ${exerciseId}`);
+    console.log(`SERVICE. Obteniendo ejercicio ${exerciseId} del gym ${gymId}`);
     
     try {
+        if (!gymId || !exerciseId) {
+            throw new Error('gymId y exerciseId son requeridos');
+        }
+        
         const exercise = await exercisesRepository.getExerciseDetailsFromDB(gymId, exerciseId);
         
         if (!exercise) {
@@ -37,13 +64,16 @@ const getExerciseDetails = async (gymId, exerciseId) => {
             throw new Error('Ejercicio archivado');
         }
         
-        console.log(`Ejercicio obtenido exitosamente`);
-        return exercise;
+        console.log(`SERVICE. Ejercicio encontrado`);
+        return { id: exerciseId, ...exercise };
         
     } catch (error) {
-        console.log(`SERVICIO. Error obteniendo ejercicio:`, error.message);
+        console.error(`SERVICE. Error obteniendo ejercicio:`, error.message);
         throw error;
     }
 };
 
-module.exports = { getGymExercises, getExerciseDetails };
+module.exports = {
+    getGymExercises,
+    getExerciseDetails
+};

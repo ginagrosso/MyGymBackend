@@ -45,18 +45,19 @@ const createCustomExerciseInDB = async (gymId, data) => {
 const getGymExercisesFromDB = async (gymId) => {
     console.log(`REPO. Obteniendo ejercicios del gym ${gymId}`);
     
-    const snapshot = await db.ref(`customExercises/${gymId}`)
-        .orderByChild('isArchived')
-        .equalTo(false)
-        .once('value');
-    
-    const exercises = [];
-    snapshot.forEach((child) => {
-        exercises.push(child.val());
-    });
-    
-    console.log(`Se encontraron ${exercises.length} ejercicios`);
-    return exercises;
+     try {
+        const snapshot = await db.ref(`customExercises/${gymId}`)
+            .orderByChild('isArchived')
+            .equalTo(false)
+            .once('value');
+        
+        const exercises = snapshot.val();
+        return exercises || {};
+        
+    } catch (error) {
+        console.error(`REPO. Error obteniendo ejercicios:`, error.message);
+        throw error;
+    }
 };
 
 // Obtener detalles de un ejercicio específico
@@ -70,7 +71,6 @@ const getExerciseDetailsFromDB = async (gymId, exerciseId) => {
         throw new Error('Ejercicio no encontrado');
     }
     
-    console.log(`Ejercicio encontrado:`, exercise);
     return exercise;
 };
 
