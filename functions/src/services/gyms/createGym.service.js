@@ -1,21 +1,21 @@
-const userRepository = require('../../repositories/users.repository');
-const {registerClientSchema} = require('../../schemas/user.schema');
+const gymsRepository = require('../../repositories/gyms.repository');
+const {registerGymSchema} = require('../../schemas/user.schema');
 const { DataValidationError, DatabaseError } = require('../../utils/httpStatusCodes');
 
 // funcion registarr usuario
-const registerClient = async (data) => {
+const registerGym = async (data) => {
     console.log(`SERVICIO. Iniciando registro de usuario: ${JSON.stringify(data)}`);
     
     try {
         //validar datos
-        const {error, value} = registerClientSchema.validate(data);
+        const {error, value} = registerGymSchema.validate(data);
         if(error){
             throw new DataValidationError(error.details[0].message);
         }
         
 
         //crear usuario en Firebase Auth
-        const nuevoUser = await userRepository.createUserAuth(
+        const nuevoUser = await gymsRepository.createGymAuth(
             value.email,
             value.password
         );
@@ -24,20 +24,16 @@ const registerClient = async (data) => {
         //datos para el perfil
         const datosPerfil = {
             email: value.email,
-            name: value.name,
-            dni: value.dni,
-            birthDate: value.birthDate,
-            userType: 'client',
-            avatarUri: value.avatarUri || null,
+            businessName: value.businessName,
+            address: value.address,
             phone: value.phone || null,
-            weight: value.weight || null,
-            height: value.height || null,
-            isActive: true,
+            avatarUri: value.avatarUri || null,
+            userType: 'gym',
             createdAt: Date.now(),
-
+            isActive: true,
         };
 
-        const perfilUser = await userRepository.createUserProfileInDB(
+        const perfilUser = await gymsRepository.createGymProfileInDB(
             nuevoUser.uid,
             datosPerfil
         );
@@ -46,7 +42,10 @@ const registerClient = async (data) => {
         return {
             uid: nuevoUser.uid,
             email: perfilUser.email,
-            name: perfilUser.name,
+            businessName: perfilUser.businessName,
+            address: perfilUser.address,
+            phone: perfilUser.phone,
+            avatarUri: perfilUser.avatarUri,
             userType: perfilUser.userType
         };
         
@@ -64,4 +63,4 @@ const registerClient = async (data) => {
     }
 };
 
-module.exports = { registerClient };
+module.exports = { registerGym };

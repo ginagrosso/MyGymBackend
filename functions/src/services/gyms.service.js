@@ -1,4 +1,10 @@
-//source/services/gyms.service.js
-//Importar getGymProfile desde ./gyms/getGymProfile.service.js.
-//Importar updateGymProfile desde ./gyms/updateGymProfile.service.js.
-//Exportar { ...getGymProfileService, ...updateGymProfileService }.
+const {registerGym} = require('./gyms/createGym.service');
+//const {getGymByUid, getGymByEmail} = require('./gyms/readGym.service');
+//const {updateGym} = require('./gyms/updateGym.service');
+
+module.exports = {
+    registerGym,
+    //getGymByUid,
+    //getGymByEmail,
+    //updateGym
+}
