@@ -40,14 +40,14 @@
 
 const functions = require("firebase-functions");
 
-exports.users = require('./modules/users');
-exports.gyms = require('./modules/gyms');
-exports.memberships = require('./modules/memberships');
-exports.payments = require('./modules/payments');
+//exports.users = require('./modules/users');
+//exports.gyms = require('./modules/gyms');
+//exports.memberships = require('./modules/memberships');
+//exports.payments = require('./modules/payments');
 exports.exercises = require('./modules/exercises');
 exports.routines = require('./modules/routines');
 exports.streaks = require('./modules/streaks');
-exports.classes = require('./modules/classes');
+//exports.classes = require('./modules/classes');
 
-module.exports = functions.https.onRequest(app);
+//module.exports = functions.https.onRequest(app);
 
