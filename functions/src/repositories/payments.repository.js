@@ -38,6 +38,21 @@ const recordPaymentInDB = async (userId, paymentData) => {
     return paymentWithMeta;
 };
 
+/**
+ * Obtener todos los pagos de un usuario desde la base de datos.
+ * Retorna un objeto con claves (IDs) y valores (datos del pago).
+ */
+const getPaymentsByUserFromDB = async (userId) => {
+    console.log(`REPO: Buscando pagos para el usuario ${userId}`);
+    
+    const ref = db.ref(`userPayments/${userId}`);
+    // Ordenar por fecha de creación para obtener cronología
+    const snapshot = await ref.orderByChild('createdAt').once('value');
+    
+    return snapshot.val(); // Puede retornar null si no hay pagos
+};
+
 module.exports = {
-    recordPaymentInDB
+    recordPaymentInDB,
+    getPaymentsByUserFromDB
 };

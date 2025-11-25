@@ -58,5 +58,40 @@ app.post("/process", async (req, res) => {
     }
 });
 
+/**
+ * ENDPOINT: Historial de pagos
+ * RUTA: GET /history
+ * USO: /history?userId=usuario_test_01&year=2025
+ */
+app.get("/history", async (req, res) => {
+    try {
+        const { userId, year } = req.query;
+
+        // Validar que userId esté presente (ya que por ahora es query param)
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: "Falta el parámetro userId (requerido en query)"
+            });
+        }
+
+        // Delegar al servicio
+        const history = await paymentService.getUserPaymentHistory(userId, year);
+
+        return res.status(200).json({
+            success: true,
+            count: history.length,
+            data: history
+        });
+
+    } catch (err) {
+        console.error("Error obteniendo historial:", err);
+        return res.status(500).json({
+            success: false,
+            message: "Error interno al obtener el historial."
+        });
+    }
+});
+
 // Exportar la app para que Firebase la use como Cloud Function
 module.exports = app;

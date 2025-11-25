@@ -7,14 +7,13 @@
 // Importamos los servicios individuales
 const { createMercadoPagoPreference } = require('./payments/createPayment.service');
 const { receiveMercadoPagoWebhook } = require('./payments/webhookPayment.service'); // Asumiendo que este es el nombre correcto basado en tus archivos
-const { getUserPaymentStatus } = require('./payments/readPayment.service');
-// AGREGAMOS ESTA LÍNEA:
+const { getUserPaymentHistory, getUserPaymentStatus } = require('./payments/readPayment.service');
 const { processNewPayment } = require('./payments/processPayment.service');
 
-// Exportamos todo junto
 module.exports = {
     createMercadoPagoPreference,
     receiveMercadoPagoWebhook,
+    getUserPaymentHistory,
     getUserPaymentStatus,
-    processNewPayment // <--- Importante agregarlo aquí
+    processNewPayment 
 };
