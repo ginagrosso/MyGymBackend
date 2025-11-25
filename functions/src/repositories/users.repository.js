@@ -1,11 +1,15 @@
 
-const { db, firebaseAdmin } = require('../utils/firebase');
+const admin = require("firebase-admin");
+const { firebaseAdmin } = require('../utils/firebase');
+
+
+const db = admin.database();
 
 // Crear usuario en Firebase Auth
 const createUserAuth = async (email, password) => {
     console.log(`REPO. Creando el usuario en Firebase Auth: ${email}`);
 
-    const userRecord = await firebaseAdmin.auth().createUser({email: email, password: password});
+    const userRecord = await admin.auth().createUser({email: email, password: password});
 
     console.log(`Usuario creado exitosamente. id: ${userRecord.uid}`);
 
@@ -62,7 +66,7 @@ const updateUserProfileInDB = async (uid, data) => {
 const findUserByEmailFromAuth = async (email) => {
     console.log(`REPO. Buscando el usuario con el email: ${email}`);
 
-    const userRecord = await firebaseAdmin.auth().getUserByEmail(email);
+    const userRecord = await admin.auth().getUserByEmail(email);
 
     console.log(`Usuario encontrado: ${userRecord}`);
     return userRecord;

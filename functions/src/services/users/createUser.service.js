@@ -3,39 +3,42 @@
 //Exportar { registerUser }.
 
 const userRepository = require('../../repositories/users.repository');
-const userSchema = require('../../schemas/user.schema');
+const {registerClientSchema} = require('../../schemas/user.schema');
+const { DataValidationError, DatabaseError } = require('../../utils/httpStatusCodes');
 
 // funcion registarr usuario
-const registerUser = async (data) => {
-    console.log(`SERVICIO. Iniciando registro de usuario ${data}`);
+const registerClient = async (data) => {
+    console.log(`SERVICIO. Iniciando registro de usuario: ${JSON.stringify(data)}`);
     
     try {
         //validar datos
-        const {error, value} = userSchema.createUserSchema.validate(data);
+        const {error, value} = registerClientSchema.validate(data);
         if(error){
-            console.log(`SERVIVIO. Error validando datos:`, error.details[0].message);
-            throw new Error(error.details[0].message);
+            throw new DataValidationError(error.details[0].message);
         }
         
 
-        console.log(`SERVICIO. Datos validados correctamente`);
+        //crear usuario en Firebase Auth
         const nuevoUser = await userRepository.createUserAuth(
             value.email,
             value.password
         );
 
-        console.log(`SERVICIO. Usuario creado en Auth con UID:`, nuevoUser.uid);
 
         //datos para el perfil
         const datosPerfil = {
             email: value.email,
-            nombre: value.nombre,
-            tipoUsuario: 'socio',
-            fotoUrl: value.fotoUrl || null,
-            peso: value.peso || null,
-            altura: value.altura || null,
-            fechaNacimiento: value.fechaNacimiento || null,
-            activeRoutineId: null
+            name: value.name,
+            dni: value.dni,
+            birthDate: value.birthDate,
+            userType: 'client',
+            avatarUri: null,
+            phone: null,
+            weight: null,
+            height: null,
+            isActive: true,
+            createdAt: Date.now(),
+
         };
 
         const perfilUser = await userRepository.createUserProfileInDB(
@@ -43,19 +46,26 @@ const registerUser = async (data) => {
             datosPerfil
         );
 
-        console.log(`Perfil creado en RTDB`);
-
         // retornar usuario creado
-        return perfilUser;
+        return {
+            uid: nuevoUser.uid,
+            email: perfilUser.email,
+            name: perfilUser.name,
+            userType: perfilUser.userType
+        };
         
     } catch (error) {
 
-        console.log(`SERVICIO. Error registrando usuario:`, error.message);
+        if (error.code === 'auth/email-already-exists') {
+            throw new DataValidationError('El email ya está registrado');
+        }
+        if (error.code && error.code.startsWith('auth/')) {
+            throw new DatabaseError('Error en el servicio de autenticación');
+        }
+
         throw error;
         
     }
 };
 
-
-
-module.exports = { registerUser };
+module.exports = { registerClient };
