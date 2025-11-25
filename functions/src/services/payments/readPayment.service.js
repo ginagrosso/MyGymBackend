@@ -1,4 +1,5 @@
 const paymentsRepo = require('../../repositories/payments.repository');
+const financeRepo = require('../../repositories/finance.repository');
 
 /**
  * Obtener historial de pagos de un usuario.
@@ -11,12 +12,10 @@ const getUserPaymentHistory = async (userId, year) => {
     const rawPayments = await paymentsRepo.getPaymentsByUserFromDB(userId);
 
     if (!rawPayments) {
-        return []; // Retornar array vacío si no hay datos (buena práctica UX)
+        return []; // Retornar array vacío si no hay datos
     }
 
     // 2. Transformar Objeto de Firebase a Array
-    // Firebase devuelve: { "id1": {data}, "id2": {data} }
-    // Queremos: [ {id: "id1", ...data}, {id: "id2", ...data} ]
     const paymentsList = Object.keys(rawPayments).map(key => ({
         id: key,
         ...rawPayments[key]
@@ -36,38 +35,40 @@ const getUserPaymentHistory = async (userId, year) => {
 
 /**
  * Obtener estado de cuenta actual del socio.
- * Calcula si está "Al día" o "Vencido" basándose en su último pago.
+ * MEJORA: Usa la configuración real del gimnasio para calcular vencimientos.
  */
 const getUserPaymentStatus = async (userId) => {
     console.log(`SERVICIO: Calculando estado de cuenta para ${userId}`);
 
-    // 1. Obtener historial completo
-    // (Reutilizamos la función que ya creamos para no repetir código)
+    // 1. Obtener historial
     const history = await getUserPaymentHistory(userId);
+    
+    // 2. Obtener configuración del gimnasio (Usamos ID fijo o lo sacamos del user)
+    const gymId = "gym_admin_test"; 
+    const settings = await financeRepo.getFinanceSettingsFromDB(gymId);
+    
+    // Usamos el valor configurado o 30 por defecto si falla la carga
+    const daysToExpire = settings.expirationDays || 30;
 
-    // 2. Si no hay pagos, es un usuario nuevo o moroso histórico
     if (!history || history.length === 0) {
         return {
-            status: 'overdue', // Vencido
+            status: 'overdue',
             message: 'No se registran pagos. Cuota pendiente.',
             daysOverdue: null,
             lastPaymentDate: null
         };
     }
 
-    // 3. Buscar el pago más reciente (El historial ya viene ordenado del más nuevo al más viejo)
     const lastPayment = history[0]; 
     const lastPaymentDate = new Date(lastPayment.createdAt);
     const today = new Date();
 
-    // 4. Regla de Negocio: La cuota dura 30 días
-    // Calculamos la fecha de vencimiento (Fecha pago + 30 días)
+    // 3. CALCULO DINÁMICO USANDO SETTINGS
     const expirationDate = new Date(lastPaymentDate);
-    expirationDate.setDate(expirationDate.getDate() + 30);
+    expirationDate.setDate(expirationDate.getDate() + daysToExpire);
 
-    // 5. Comparar fechas
     if (today > expirationDate) {
-        // Si hoy es mayor que el vencimiento -> Está VENCIDO
+        // VENCIDO
         const diffTime = Math.abs(today - expirationDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
@@ -79,12 +80,12 @@ const getUserPaymentStatus = async (userId) => {
             expirationDate: expirationDate.toISOString()
         };
     } else {
-        // Si hoy es menor -> Está AL DÍA
+        // AL DÍA
         const diffTime = Math.abs(expirationDate - today);
         const daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         return {
-            status: 'active', // Al día
+            status: 'active',
             message: `Cuota activa. Vence en ${daysRemaining} días.`,
             daysRemaining: daysRemaining,
             lastPaymentDate: lastPaymentDate.toISOString(),
