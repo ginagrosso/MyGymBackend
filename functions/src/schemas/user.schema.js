@@ -127,11 +127,30 @@ const changePasswordSchema = Joi.object({
     })
 });
 
+const forgotPasswordSchema = Joi.object({
+    email: Joi.string().email().required().messages({
+        'string.email': 'El email debe tener un formato válido',
+        'any.required': 'El email es obligatorio'
+    })
+});
+
+const resetPasswordSchema = Joi.object({
+    oobCode: Joi.string().required().messages({
+        'any.required': 'El código de recuperación es obligatorio'
+    }),
+    newPassword: Joi.string().min(6).required().messages({
+        'string.min': 'La nueva contraseña debe tener al menos 6 caracteres',
+        'any.required': 'La nueva contraseña es obligatoria'
+    })
+});
+
 module.exports = {
     registerClientSchema,
     registerGymSchema,
     updateGymSchema,
     updateUserSchema,
     loginSchema,
-    changePasswordSchema
+    changePasswordSchema,
+    forgotPasswordSchema,
+    resetPasswordSchema
 };
