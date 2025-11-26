@@ -46,6 +46,15 @@ const getGymProfileFromDB = async (uid) => {
     return userData;
 };
 
+const getAllGymsFromDB = async () => {
+    console.log(`REPO. Buscando todos los gimnasios`);
+    const gymsRef = db.ref('gyms');
+    const snapshot = await gymsRef.once('value');
+    const gymsData = snapshot.val();
+    console.log(`Gimnasios encontrados:`, gymsData);
+    return gymsData;
+};
+
 // Actualizar perfil en RTDB
 const updateGymProfileInDB = async (uid, data) => {
 
@@ -75,6 +84,7 @@ module.exports = {
     createGymAuth,
     createGymProfileInDB,
     getGymProfileFromDB,
+    getAllGymsFromDB,
     updateGymProfileInDB,
     findGymByEmailFromAuth
 }
