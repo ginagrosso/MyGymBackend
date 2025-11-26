@@ -121,5 +121,4 @@ app.get('/history', async (req, res) => {
     }
 });
 
-// ⚠️ IMPORTANTE: Esta línea al final
 module.exports = functions.https.onRequest(app);
