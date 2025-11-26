@@ -9,11 +9,15 @@ const { createMercadoPagoPreference } = require('./payments/createPayment.servic
 const { receiveMercadoPagoWebhook } = require('./payments/webhookPayment.service'); // Asumiendo que este es el nombre correcto basado en tus archivos
 const { getUserPaymentHistory, getUserPaymentStatus } = require('./payments/readPayment.service');
 const { processNewPayment } = require('./payments/processPayment.service');
+const { addPaymentMethod, getUserMethods, removePaymentMethod } = require('./payments/paymentMethods.service');
 
 module.exports = {
-    createMercadoPagoPreference,
-    receiveMercadoPagoWebhook,
-    getUserPaymentHistory,
-    getUserPaymentStatus,
-    processNewPayment 
+  createMercadoPagoPreference,
+  receiveMercadoPagoWebhook,
+  getUserPaymentHistory,
+  getUserPaymentStatus,
+  processNewPayment,
+  addPaymentMethod,
+  getUserMethods,
+  removePaymentMethod
 };

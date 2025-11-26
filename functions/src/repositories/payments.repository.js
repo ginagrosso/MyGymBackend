@@ -52,7 +52,20 @@ const getPaymentsByUserFromDB = async (userId) => {
     return snapshot.val(); // Puede retornar null si no hay pagos
 };
 
+/**
+ * Obtener TODOS los pagos registrados en el sistema.
+ * Estructura en DB: { userId1: { pagoA, pagoB }, userId2: { pagoC } }
+ */
+const getAllPaymentsDB = async () => {
+    console.log('REPO: Obteniendo TODAS las transacciones globales');
+    // Consultamos la raíz de pagos
+    const ref = db.ref('userPayments'); 
+    const snapshot = await ref.once('value');
+    return snapshot.val();
+};
+
 module.exports = {
     recordPaymentInDB,
-    getPaymentsByUserFromDB
+    getPaymentsByUserFromDB,
+    getAllPaymentsDB 
 };

@@ -125,5 +125,46 @@ app.get("/status", async (req, res) => {
     }
 });
 
+/**
+ * GET /methods
+ * Query: userId
+ */
+app.get("/methods", async (req, res) => {
+    try {
+        const { userId } = req.query;
+        const methods = await paymentService.getUserMethods(userId);
+        return res.status(200).json({ success: true, data: methods });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * POST /methods
+ */
+app.post("/methods", async (req, res) => {
+    try {
+        const result = await paymentService.addPaymentMethod(req.body);
+        return res.status(201).json({ success: true, data: result });
+    } catch (err) {
+        return res.status(400).json({ success: false, message: err.message });
+    }
+});
+
+/**
+ * DELETE /methods/:id
+ * Query: userId (necesitamos saber de quién es para borrarlo de su ruta)
+ */
+app.delete("/methods/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId } = req.query;
+        await paymentService.removePaymentMethod(userId, id);
+        return res.status(200).json({ success: true, message: "Eliminado" });
+    } catch (err) {
+        return res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // Exportar la app para que Firebase la use como Cloud Function
 module.exports = app;
