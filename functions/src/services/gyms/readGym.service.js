@@ -50,8 +50,46 @@ const getClientsFromGym = async (gymId, requestingUserId, filters = {}) => {
     return clients;
 };
 
+// Obtener estadísticas del gym
+const getGymStats = async (gymId, requestingUserId) => {
+    console.log(`SERVICIO. Obteniendo estadísticas del gym ${gymId}`);
+    
+    const { AuthorizationError, ResourceNotFoundError } = require('../../utils/httpStatusCodes');
+    
+    // Verificar permisos
+    if (requestingUserId !== gymId) {
+        throw new AuthorizationError('No tenés permiso para ver estadísticas de este gimnasio');
+    }
+    
+    // Verificar que el gym existe
+    const gymProfile = await gymsRepository.getGymProfileFromDB(gymId);
+    if (!gymProfile || gymProfile.userType !== 'gym') {
+        throw new AuthorizationError('El usuario no es un gimnasio');
+    }
+    
+    // Obtener todos los clientes
+    const allClients = await gymsRepository.getClientsFromGym(gymId);
+    
+    // Contar activos e inactivos
+    const activeClients = allClients.filter(c => c.isActive === true);
+    const inactiveClients = allClients.filter(c => c.isActive === false);
+    
+    // Clientes nuevos este mes
+    const now = Date.now();
+    const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000);
+    const newClientsThisMonth = allClients.filter(c => c.createdAt >= oneMonthAgo);
+    
+    return {
+        totalClients: allClients.length,
+        activeClients: activeClients.length,
+        inactiveClients: inactiveClients.length,
+        newClientsThisMonth: newClientsThisMonth.length
+    };
+};
+
 module.exports = {
     getGymProfile,
     getAllGyms,
-    getClientsFromGym
+    getClientsFromGym,
+    getGymStats
 }

@@ -72,7 +72,6 @@ const registerClient = async (data) => {
 const registerClientManually = async (gymId, requestingUserId, data) => {
     console.log(`SERVICIO. Iniciando registro de usuario manual: ${JSON.stringify(data)}`);
 
-    // 1. Validar permisos del gym
     if (requestingUserId !== gymId) {
         throw new AuthorizationError('No tenés permiso para dar de alta clientes en este gimnasio');
     }
@@ -85,7 +84,6 @@ const registerClientManually = async (gymId, requestingUserId, data) => {
         throw new AuthorizationError('El usuario no es un gimnasio');
     }
     
-    // 2. Preparar datos
     const temporaryPassword = generateTemporaryPassword();
     const clientData = {
         ...data,
@@ -94,14 +92,29 @@ const registerClientManually = async (gymId, requestingUserId, data) => {
         birthDate: data.birthDate || '2000-01-01'
     };
     
-    // 3. Reutilizar registerClient
     const newClient = await registerClient(clientData);
     
-    // 4. Agregar info extra a la respuesta
+    // Enviar email automático de configuración de contraseña
+    const axios = require('axios');
+    const firebaseApiKey = process.env.MY_FIREBASE_API_KEY;
+    
+    try {
+        await axios.post(
+            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`,
+            {
+                requestType: 'PASSWORD_RESET',
+                email: data.email
+            }
+        );
+        console.log('Email de configuración enviado al cliente');
+    } catch (error) {
+        console.log('Advertencia: No se pudo enviar email automático');
+    }
+    
     return {
         ...newClient,
         temporaryPassword: temporaryPassword,
-        message: 'Cliente creado. Enviar contraseña temporal al cliente.'
+        message: 'Cliente creado. Se envió email de configuración. Contraseña temporal como backup: ' + temporaryPassword
     };
 };
 
