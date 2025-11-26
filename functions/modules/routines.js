@@ -27,7 +27,7 @@ app.use(express.json());
  * POST /
  * Crear nueva rutina
  */
-app.post('/', async (req, res) => {
+app.post('/create', async (req, res) => {
     console.log('=== POST /routines ===');
     console.log('Body recibido:', req.body);
     

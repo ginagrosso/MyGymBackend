@@ -9,6 +9,9 @@ const createRoutineSchema = Joi.object({
     ejercicios: Joi.array().items(
         Joi.object({
             exerciseId: Joi.string().required(),
+            nombre: Joi.string().required().messages({
+                'any.required': 'El nombre del ejercicio es obligatorio'
+            }),
             sets: Joi.number().integer().min(1).required(),
             reps: Joi.number().integer().min(1).required(),
             weight: Joi.number().optional(),
