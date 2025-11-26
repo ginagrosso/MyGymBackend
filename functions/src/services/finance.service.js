@@ -2,13 +2,11 @@ const paymentsRepo = require('../repositories/payments.repository');
 const financeRepo = require('../repositories/finance.repository');
 const { financeSettingsSchema } = require('../schemas/financeSettings.schema');
 
-/**
- * 1. Obtener listado global de transacciones
- */
+
 const getAllTransactions = async (preFetchedData = null) => {
   console.log('SERVICIO: Generando reporte global de transacciones...');
 
-  // Si nos pasan datos, los usamos. Si no, vamos a la BD.
+  
   const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
 
   if (!allUsersPayments) return [];
@@ -27,13 +25,10 @@ const getAllTransactions = async (preFetchedData = null) => {
   return globalTransactions.sort((a, b) => b.createdAt - a.createdAt);
 };
 
-/**
- * 2. Obtener lista de deudores
- */
+
 const getDebtorsList = async (preFetchedData = null) => {
   console.log('SERVICIO: Generando lista de deudores...');
 
-  // Reutilización de datos o fetch nuevo
   const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
 
   if (!allUsersPayments) return [];
@@ -69,9 +64,7 @@ const getDebtorsList = async (preFetchedData = null) => {
   return debtors.sort((a, b) => b.daysOverdue - a.daysOverdue);
 };
 
-/**
- * 3. Registrar pago manual
- */
+
 const registerManualPayment = async (gymId, data) => {
   console.log('SERVICIO: Registrando pago manual:', data);
 
@@ -89,13 +82,9 @@ const registerManualPayment = async (gymId, data) => {
   return savedPayment;
 };
 
-/**
- * 4. Generar Dashboard
- */
 const getDashboardData = async (period) => {
   console.log(`SERVICIO: Generando dashboard para periodo: ${period || 'Actual'}`);
 
-  // 1. FETCH ÚNICO: Traemos toda la data cruda de una vez
   const allRawData = await paymentsRepo.getAllPaymentsDB();
 
   const now = new Date();
@@ -111,7 +100,6 @@ const getDashboardData = async (period) => {
   const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getTime();
   const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59).getTime();
 
-  // 2. REUTILIZACIÓN: Pasamos 'allRawData' para evitar nuevas consultas a la BD
   const allTransactions = await getAllTransactions(allRawData);
 
   const monthlyTransactions = allTransactions.filter(t => {
@@ -133,7 +121,6 @@ const getDashboardData = async (period) => {
     }
   });
 
-  // 3. REUTILIZACIÓN: Calculamos deudores con la misma data que ya bajamos
   const debtorsList = await getDebtorsList(allRawData);
   const debtorsCount = debtorsList.length;
 
@@ -159,16 +146,12 @@ const getDashboardData = async (period) => {
   };
 };
 
-/**
- * 5. Obtener Configuración
- */
+
 const getSettings = async (gymId) => {
   return await financeRepo.getFinanceSettingsFromDB(gymId);
 };
 
-/**
- * 6. Actualizar Configuración
- */
+
 const updateSettings = async (gymId, data) => {
   console.log('SERVICIO: Actualizando configuración financiera...');
 
@@ -180,9 +163,7 @@ const updateSettings = async (gymId, data) => {
   return await financeRepo.saveFinanceSettingsInDB(gymId, value);
 };
 
-/**
- * 7. Reporte Mensual 
- */
+
 const getMonthlyReport = async (month, year) => {
   console.log(`SERVICIO: Generando reporte para ${month}/${year}`);
 
@@ -190,7 +171,6 @@ const getMonthlyReport = async (month, year) => {
 
   const transactions = allTransactions.filter(t => {
     const date = new Date(t.createdAt);
-    // Ajuste: getMonth() es 0-11, por eso sumamos 1 para comparar con el input
     return (date.getMonth() + 1) === parseInt(month) && date.getFullYear() === parseInt(year);
   });
 
@@ -214,9 +194,7 @@ const getMonthlyReport = async (month, year) => {
   };
 };
 
-/**
- * 8. Detalle de Factura
- */
+
 const getInvoiceDetails = async (paymentId) => {
   console.log(`SERVICIO: Buscando comprobante ${paymentId}`);
 
@@ -241,9 +219,7 @@ const getInvoiceDetails = async (paymentId) => {
   };
 };
 
-/**
- * 9. Enviar Recordatorios 
- */
+
 const sendPaymentReminders = async (targetUserIds) => {
   console.log('SERVICIO: Iniciando proceso de recordatorios...');
 

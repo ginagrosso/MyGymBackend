@@ -1,28 +1,14 @@
-//functions/modules/payments.js
-//Importar express, cors, y el pasamano paymentService.
-//Crear la app de Express: const app = express();.
-//Endpoint POST /create-preference: (Para MetodoDePago.tsx) Llama a paymentService.createMercadoPagoPreference(req.body).
-//Endpoint POST /webhook: (Requerido por Mercado Pago) Llama a paymentService.receiveMercadoPagoWebhook(req.body).
-//Endpoint GET /status/:userId: (Para cuota.tsx) Llama a paymentService.getUserPaymentStatus(req.params.userId).
-//Exportar app.
-
 const express = require("express");
 const cors = require("cors");
-// Importamos el servicio (lógica de negocio)
 const paymentService = require("../src/services/payments.service");
-// Importamos tu esquema de validación (el "portero")
 const { processPaymentSchema } = require("../src/schemas/payment.schema");
 
 const app = express();
 
-// Middleware automáticos
-app.use(cors({ origin: true })); // Permitir peticiones de cualquier origen (útil para desarrollo)
-app.use(express.json()); // Parsear automáticamente el cuerpo de las peticiones a JSON
+app.use(cors({ origin: true })); 
+app.use(express.json()); 
 
-/**
- * ENDPOINT: Procesar un nuevo pago
- * RUTA: POST /process (Se convierte en /payments/process al desplegar)
- */
+
 app.post("/process", async (req, res) => {
     try {
         // 1. Validar datos de entrada con Joi
