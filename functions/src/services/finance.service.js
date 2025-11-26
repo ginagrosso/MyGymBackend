@@ -43,7 +43,6 @@ const getDebtorsList = async (preFetchedData = null) => {
     const lastPayment = paymentsArray[0];
     const lastPaymentDate = new Date(lastPayment.createdAt);
 
-    // TODO: En un futuro, esto debería leer la config del gym
     const expirationDate = new Date(lastPaymentDate);
     expirationDate.setDate(expirationDate.getDate() + 30);
 

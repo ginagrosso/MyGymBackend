@@ -5,8 +5,6 @@ const addPaymentMethod = async (data) => {
   const { error, value } = addPaymentMethodSchema.validate(data);
   if (error) throw new Error(error.details[0].message);
 
-  // Aquí idealmente contactarías a MercadoPago para validar el token y crear un 'CustomerCard'.
-  // Por ahora, guardamos la referencia localmente.
   return await methodsRepo.savePaymentMethodInDB(value.userId, value);
 };
 
@@ -16,7 +14,6 @@ const getUserMethods = async (userId) => {
   const methods = await methodsRepo.getUserPaymentMethodsFromDB(userId);
   if (!methods) return [];
 
-  // Convertir objeto a array
   return Object.keys(methods).map(key => ({
     id: key,
     ...methods[key]
