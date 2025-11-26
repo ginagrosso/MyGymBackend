@@ -23,7 +23,3 @@ exports.streaks = functions.https.onRequest(require('./modules/streaks'));
 // exports.users = functions.https.onRequest(require('./modules/users'));
 // exports.gyms = functions.https.onRequest(require('./modules/gyms'));
 // exports.classes = functions.https.onRequest(require('./modules/classes'));
-
-// Nota sobre Memberships: Hubo un conflicto de renombrado/borrado. 
-// Si decides usarlo, descomenta la siguiente línea:
-// exports.memberships = functions.https.onRequest(require('./modules/memberships'));
