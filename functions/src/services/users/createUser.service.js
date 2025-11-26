@@ -1,6 +1,8 @@
 const userRepository = require('../../repositories/users.repository');
 const {registerClientSchema} = require('../../schemas/user.schema');
-const { DataValidationError, DatabaseError } = require('../../utils/httpStatusCodes');
+const { DataValidationError, DatabaseError, AuthorizationError, ResourceNotFoundError } = require('../../utils/httpStatusCodes');
+const gymsRepository = require('../../repositories/gyms.repository');
+const { generateTemporaryPassword } = require('../../utils/passwordGenerator');
 
 // funcion registarr usuario
 const registerClient = async (data) => {
@@ -66,4 +68,41 @@ const registerClient = async (data) => {
     }
 };
 
-module.exports = { registerClient };
+// Wrapper para alta manual
+const registerClientManually = async (gymId, requestingUserId, data) => {
+    console.log(`SERVICIO. Iniciando registro de usuario manual: ${JSON.stringify(data)}`);
+
+    // 1. Validar permisos del gym
+    if (requestingUserId !== gymId) {
+        throw new AuthorizationError('No tenés permiso para dar de alta clientes en este gimnasio');
+    }
+    
+    const gymProfile = await gymsRepository.getGymProfileFromDB(gymId);
+    if (!gymProfile) {
+        throw new ResourceNotFoundError('Gimnasio no encontrado');
+    }
+    if (gymProfile.userType !== 'gym') {
+        throw new AuthorizationError('El usuario no es un gimnasio');
+    }
+    
+    // 2. Preparar datos
+    const temporaryPassword = generateTemporaryPassword();
+    const clientData = {
+        ...data,
+        password: temporaryPassword,
+        gymId: gymId,
+        birthDate: data.birthDate || '2000-01-01'
+    };
+    
+    // 3. Reutilizar registerClient
+    const newClient = await registerClient(clientData);
+    
+    // 4. Agregar info extra a la respuesta
+    return {
+        ...newClient,
+        temporaryPassword: temporaryPassword,
+        message: 'Cliente creado. Enviar contraseña temporal al cliente.'
+    };
+};
+
+module.exports = { registerClient, registerClientManually };

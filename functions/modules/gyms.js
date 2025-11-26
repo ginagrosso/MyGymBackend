@@ -7,6 +7,8 @@ const loggingMiddleware = require('../src/middlewares/logging.middleware');
 const { getSuccessResponseObject, getErrorResponseObject } = require('../src/utils/responseHelpers');
 const { httpStatusCodes } = require('../src/utils/httpStatusCodes');
 const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
+const userService = require('../src/services/users.service');
+const { generateTemporaryPassword } = require('../src/utils/passwordGenerator');
 
 const app = express();
 
@@ -60,6 +62,23 @@ app.get('/gyms/:gymId', validateFirebaseIdToken, async (req, res) => {
     }
 });
 
+app.post('/gyms/:gymId/clients', validateFirebaseIdToken, async (req, res) => {
+    try {
+        const { gymId } = req.params;
+        const loggedUserId = req.user.uid;
+        
+        // Llamar al service de users
+        const newClient = await userService.registerClientManually(gymId, loggedUserId, req.body);
+        
+        const response = getSuccessResponseObject(newClient, 'Cliente registrado manualmente con éxito');
+        return res.status(httpStatusCodes.created).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
 
 app.get('/gyms/:gymId/clients', validateFirebaseIdToken, async (req, res) => {
     try {
@@ -78,4 +97,23 @@ app.get('/gyms/:gymId/clients', validateFirebaseIdToken, async (req, res) => {
         return res.status(statusCode).json(errorResponse);
     }
 });
+
+app.delete('/gyms/:gymId/clients/:clientId', validateFirebaseIdToken, async (req, res) => {
+    try {
+        const { gymId, clientId } = req.params;
+        const loggedUserId = req.user.uid;
+
+        const result = await userService.deactivateClient(gymId, clientId, loggedUserId);
+        
+        const response = getSuccessResponseObject(result, 'Cliente dado de baja exitosamente');
+        return res.status(httpStatusCodes.ok).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
+
+
 module.exports = functions.https.onRequest(app);
