@@ -1,32 +1,72 @@
-//createExercise.service.js:
-
-//Función createCustomExercise(data): (Lógica: Llama a exercisesRepo.createCustomExerciseInDB(data.gymId, data.exerciseData)).
-
-//Exportar { createCustomExercise }.
-
+const { createRoutineSchema } = require('../../schemas/routine.schema');
+const routinesRepository = require('../../repositories/routines.repository');
 const exercisesRepository = require('../../repositories/exercises.repository');
-const { createExerciseSchema } = require('../../schemas/exercise.schema');
+const { DataValidationError, ResourceNotFoundError } = require('../../utils/httpStatusCodes');
 
-const createCustomExercise = async (gymId, data) => {
+const createRoutine = async (data) => {
+    console.log('SERVICIO. Iniciando creación de rutina');
     
-    try {
-        // Validar datos
-        const { error, value } = createExerciseSchema.validate(data);
-        if (error) {
-            console.log(`SERVICIO. Error validando datos:`, error.details[0].message);
-            throw new Error(error.details[0].message);
+    // 1. Validar datos con Joi (strip unknown para eliminar undefined)
+    const { error, value } = createRoutineSchema.validate(data, { 
+        stripUnknown: true,
+        convert: true 
+    });
+    
+    if (error) {
+        throw new DataValidationError(error.details[0].message);
+    }
+    
+    // 2. Extraer IDs de ejercicios
+    const exerciseIds = value.ejercicios.map(ej => ej.exerciseId);
+    console.log(`Validando existencia de ${exerciseIds.length} ejercicios`);
+    
+    // 3. Verificar que todos los ejercicios existan
+    const existingExercises = await exercisesRepository.getExercisesByIdsFromDB(exerciseIds);
+    
+    if (existingExercises.length !== exerciseIds.length) {
+        const foundIds = existingExercises.map(ex => ex.exerciseId);
+        const missingIds = exerciseIds.filter(id => !foundIds.includes(id));
+        throw new ResourceNotFoundError(
+            `Los siguientes ejercicios no existen: ${missingIds.join(', ')}`
+        );
+    }
+    
+    // 4. Limpiar ejercicios removiendo undefined y null
+    const ejerciciosLimpios = value.ejercicios.map(ej => {
+        const ejercicio = {
+            exerciseId: ej.exerciseId,
+            sets: ej.sets,
+            reps: ej.reps
+        };
+        
+        // Solo agregar weight si existe
+        if (ej.weight !== undefined && ej.weight !== null) {
+            ejercicio.weight = ej.weight;
         }
         
-        // Crear ejercicio
-        const exercise = await exercisesRepository.createCustomExerciseInDB(gymId, value);
+        // Solo agregar notes si existe y no está vacío
+        if (ej.notes !== undefined && ej.notes !== null && ej.notes.trim() !== '') {
+            ejercicio.notes = ej.notes;
+        }
         
-        console.log(`Ejercicio creado exitosamente`);
-        return exercise;
-        
-    } catch (error) {
-        console.log(`SERVICIO. Error creando ejercicio:`, error.message);
-        throw error;
-    }
+        return ejercicio;
+    });
+    
+    // 5. Preparar datos finales
+    const routineData = {
+        nombre: value.nombre,
+        descripcion: value.descripcion || '',
+        ejercicios: ejerciciosLimpios
+    };
+    
+    console.log('Datos a guardar:', JSON.stringify(routineData, null, 2));
+    
+    // 6. Guardar en BD
+    const newRoutine = await routinesRepository.createRoutineInDB(routineData);
+    
+    console.log(`Rutina creada exitosamente con ID: ${newRoutine.id}`);
+    
+    return newRoutine;
 };
 
-module.exports = { createCustomExercise };
+module.exports = { createRoutine };

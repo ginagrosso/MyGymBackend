@@ -1,12 +1,3 @@
-//functions/modules/routines.js
-//Importar express, cors, y el pasamano routineService.
-//Crear la app de Express: const app = express();.
-//Endpoint POST /: (Para crear rutinas) Llama a routineService.createRoutine(req.body).
-//Endpoint PUT /:routineId: (Para editar rutinas) Llama a routineService.updateRoutine(req.params.routineId, req.body).
-//Endpoint POST /assign: (Para entrenamiento.tsx) Llama a routineService.assignRoutine(req.body).
-//Endpoint GET /user/:userId: (Para rutina.tsx) Llama a routineService.getUserRoutine(req.params.userId).
-//Exportar app.
-
 const functions = require('firebase-functions');
 const express = require('express');
 const cors = require('cors');
@@ -15,19 +6,24 @@ const { getRoutineDetails, getUserActiveRoutine } = require('../src/services/rou
 const { updateRoutine, archiveRoutine } = require('../src/services/routines/updateRoutine.service');
 const { assignRoutine } = require('../src/services/routines/assignRoutine.service');
 const { logProgress } = require('../src/services/routines/logProgress.service');
+const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
 
 const app = express();
 
-// Middlewares
-//cors permite cualquier origen, cambiar en producción
-app.use(cors({ origin: true }));
+
+app.use(cors({
+    origin:'https://ginagrosso.github.io',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json());
 
 /**
  * POST /
  * Crear nueva rutina
  */
-app.post('/create', async (req, res) => {
+app.post('/create', validateFirebaseIdToken, async (req, res) => {
     console.log('=== POST /routines ===');
     console.log('Body recibido:', req.body);
     
@@ -53,7 +49,7 @@ app.post('/create', async (req, res) => {
  * GET /:routineId
  * Obtener detalles de una rutina
  */
-app.get('/:routineId', async (req, res) => {
+app.get('/:routineId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /routines/:routineId ===');
     console.log('Params:', req.params);
     
@@ -79,7 +75,7 @@ app.get('/:routineId', async (req, res) => {
  * PUT /:routineId
  * Actualizar rutina
  */
-app.put('/:routineId', async (req, res) => {
+app.put('/:routineId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== PUT /routines/:routineId ===');
     console.log('Params:', req.params);
     console.log('Body:', req.body);
@@ -107,7 +103,7 @@ app.put('/:routineId', async (req, res) => {
  * DELETE /:routineId
  * Archivar rutina (soft delete)
  */
-app.delete('/:routineId', async (req, res) => {
+app.delete('/:routineId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== DELETE /routines/:routineId ===');
     console.log('Params:', req.params);
     
@@ -134,7 +130,7 @@ app.delete('/:routineId', async (req, res) => {
  * POST /assign
  * Asignar rutina a un usuario
  */
-app.post('/assign', async (req, res) => {
+app.post('/assign', validateFirebaseIdToken, async (req, res) => {
     console.log('=== POST /routines/assign ===');
     console.log('Body:', req.body);
     
@@ -160,7 +156,7 @@ app.post('/assign', async (req, res) => {
  * GET /user/:userId
  * Obtener rutina activa del usuario
  */
-app.get('/user/:userId', async (req, res) => {
+app.get('/user/:userId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /routines/user/:userId ===');
     console.log('Params:', req.params);
     
@@ -193,7 +189,7 @@ app.get('/user/:userId', async (req, res) => {
  * POST /progress
  * Registrar progreso en la rutina
  */
-app.post('/progress', async (req, res) => {
+app.post('/progress', validateFirebaseIdToken, async (req, res) => {
     console.log('=== POST /routines/progress ===');
     console.log('Body:', req.body);
     

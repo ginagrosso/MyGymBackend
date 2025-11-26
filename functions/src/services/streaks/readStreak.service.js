@@ -11,41 +11,36 @@ const calculateStreak = (checkIns) => {
     if (!checkIns || Object.keys(checkIns).length === 0) {
         return { currentStreak: 0, longestStreak: 0 };
     }
-    
-    const dates = Object.keys(checkIns).sort().reverse(); // Ordenar de más reciente a más antigua
-    let currentStreak = 0;
-    let longestStreak = 0;
+
+    const dates = Object.keys(checkIns).sort().reverse();
+    let currentStreak = 1;
+    let longestStreak = 1;
     let tempStreak = 1;
-    
+
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    
-    // Verificar si hay check-in hoy o ayer para iniciar racha actual
+
+    // Calcular currentStreak solo si el último check-in es hoy o ayer
     if (dates[0] === today || dates[0] === yesterday) {
-        currentStreak = 1;
-        
-        // Calcular racha consecutiva
         for (let i = 1; i < dates.length; i++) {
             const prevDate = new Date(dates[i - 1]);
             const currDate = new Date(dates[i]);
             const diffDays = Math.floor((prevDate - currDate) / 86400000);
-            
             if (diffDays === 1) {
                 currentStreak++;
-                tempStreak++;
             } else {
                 break;
             }
         }
+    } else {
+        currentStreak = dates.length === 1 ? 1 : 0;
     }
-    
-    // Calcular racha más larga
-    tempStreak = 1;
+
+    // Calcular longestStreak
     for (let i = 1; i < dates.length; i++) {
         const prevDate = new Date(dates[i - 1]);
         const currDate = new Date(dates[i]);
         const diffDays = Math.floor((prevDate - currDate) / 86400000);
-        
         if (diffDays === 1) {
             tempStreak++;
             longestStreak = Math.max(longestStreak, tempStreak);
@@ -53,9 +48,7 @@ const calculateStreak = (checkIns) => {
             tempStreak = 1;
         }
     }
-    
-    longestStreak = Math.max(longestStreak, currentStreak);
-    
+
     return { currentStreak, longestStreak };
 };
 

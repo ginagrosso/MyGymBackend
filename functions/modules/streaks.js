@@ -3,19 +3,22 @@ const express = require('express');
 const cors = require('cors');
 const { logCheckIn } = require('../src/services/streaks/createStreak.service');
 const { getUserStreak } = require('../src/services/streaks/readStreak.service');
+const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
 
 const app = express();
 
-// Middlewares
-//cors permite cualquier origen, cambiar en producción
-app.use(cors({ origin: true }));
+app.use(cors({
+    origin:'https://ginagrosso.github.io',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 /**
  * POST /check-in
  * Registrar asistencia (check-in)
  */
-app.post('/check-in', async (req, res) => {
+app.post('/check-in', validateFirebaseIdToken, async (req, res) => {
     console.log('=== POST /check-in ===');
     console.log('Body recibido:', req.body);
     
@@ -49,39 +52,10 @@ app.post('/check-in', async (req, res) => {
 });
 
 /**
- * GET /streak/:userId
- * Obtener racha de un usuario
- */
-app.get('/streak/:userId', async (req, res) => {
-    console.log('=== GET /streak/:userId ===');
-    console.log('Params:', req.params);
-    
-    try {
-        const { userId } = req.params;
-        
-        const streakData = await getUserStreak(userId);
-        
-        console.log('Racha obtenida exitosamente');
-        
-        res.status(200).json({
-            success: true,
-            data: streakData
-        });
-        
-    } catch (error) {
-        console.error('Error en GET /streak:', error.message);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Error al obtener racha'
-        });
-    }
-});
-
-/**
  * GET /history
  * Historial de asistencias del usuario autenticado
  */
-app.get('/history', async (req, res) => {
+app.get('/history', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /history ===');
     console.log('Query params:', req.query);
     
@@ -120,5 +94,36 @@ app.get('/history', async (req, res) => {
         });
     }
 });
+
+
+/**
+ * GET /streak/:userId
+ * Obtener racha de un usuario
+ */
+app.get('/:userId', validateFirebaseIdToken, async (req, res) => {
+    console.log('=== GET /streak/:userId ===');
+    console.log('Params:', req.params);
+    
+    try {
+        const { userId } = req.params;
+        
+        const streakData = await getUserStreak(userId);
+        
+        console.log('Racha obtenida exitosamente');
+        
+        res.status(200).json({
+            success: true,
+            data: streakData
+        });
+        
+    } catch (error) {
+        console.error('Error en GET /streak:', error.message);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error al obtener racha'
+        });
+    }
+});
+
 
 module.exports = functions.https.onRequest(app);

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyGym Backend Tester - Completo</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 140px;
+            width: 200px;
+            background: white;
+            padding: 20px;
+            border-right: 2px solid #e9ecef;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+        }
+        .sidebar a {
+            display: block;
+            padding: 10px;
+            margin-bottom: 5px;
+            color: #667eea;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .sidebar a:hover {
+            background: #f8f9fa;
+        }
+        main {
+            margin-left: 220px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏋️ MyGym Backend Tester - Completo</h1>
+            <div class="config">
+                <label for="baseUrl">Base URL:</label>
+                <input type="text" id="baseUrl" value="https://mygym-912d1-default-rtdb.firebaseio.com" placeholder="https://tu-proyecto.cloudfunctions.net">
+            </div>
+        </header>
+
+        <nav class="sidebar">
+            <a href="#auth">🔐 Auth</a>
+            <a href="#users">👤 Usuarios</a>
+            <a href="#gyms">🏢 Gimnasios</a>
+            <a href="#exercises">💪 Ejercicios</a>
+            <a href="#routines">📋 Rutinas</a>
+            <a href="#progress">📊 Progreso</a>
+            <a href="#streaks">🔥 Rachas</a>
+            <a href="#registrations">📝 Inscripciones</a>
+            <a href="#payments">💳 Pagos</a>
+            <a href="#finance">💰 Finanzas</a>
+        </nav>
+
+        <main>
+            <!-- ==================== AUTH ==================== -->
+            <section class="section" id="auth">
+                <h2>🔐 Autenticación</h2>
+                
+                <div class="endpoint">
+                    <h3>Login</h3>
+                    <textarea id="loginBody" rows="4">{
+  "email": "test@example.com",
+  "password": "password123"
+}</textarea>
+                    <button onclick="login()">POST /auth/auth/login</button>
+                    <div class="response" id="loginResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Recuperar Contraseña</h3>
+                    <textarea id="forgotPasswordBody" rows="3">{
+  "email": "test@example.com"
+}</textarea>
+                    <button onclick="forgotPassword()">POST /auth/auth/forgot-password</button>
+                    <div class="response" id="forgotPasswordResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== USUARIOS ==================== -->
+            <section class="section" id="users">
+                <h2>👤 Usuarios</h2>
+                
+                <div class="endpoint">
+                    <h3>Registrar Cliente</h3>
+                    <textarea id="createUserBody" rows="10">{
+  "email": "test@example.com",
+  "password": "password123",
+  "name": "Usuario Test",
+  "dni": "12345678",
+  "birthDate": "1990-01-01",
+  "gender": "male",
+  "phone": "+54911234567",
+  "weight": 75,
+  "height": 180
+}</textarea>
+                    <button onclick="createUser()">POST /users/auth/register/client</button>
+                    <div class="response" id="createUserResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== GIMNASIOS ==================== -->
+            <section class="section" id="gyms">
+                <h2>🏢 Gimnasios</h2>
+                
+                <div class="endpoint">
+                    <h3>Registrar Gimnasio</h3>
+                    <textarea id="registerGymBody" rows="8">{
+  "name": "Gym Test",
+  "address": "Calle Principal 123",
+  "phone": "+54911111111",
+  "email": "gym@test.com",
+  "ownerEmail": "owner@test.com",
+  "ownerPassword": "password123"
+}</textarea>
+                    <button onclick="registerGym()">POST /gyms/auth/register/gym</button>
+                    <div class="response" id="registerGymResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Listar Gimnasios</h3>
+                    <button onclick="getAllGyms()">GET /gyms/gyms</button>
+                    <div class="response" id="getAllGymsResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Obtener Gimnasio</h3>
+                    <input type="text" id="getGymId" placeholder="gymId">
+                    <button onclick="getGym()">GET /gyms/gyms/:gymId</button>
+                    <div class="response" id="getGymResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== EJERCICIOS ==================== -->
+            <section class="section" id="exercises">
+                <h2>💪 Ejercicios</h2>
+                
+                <div class="endpoint">
+                    <h3>Crear Ejercicio</h3>
+                    <textarea id="createExerciseBody" rows="10">{
+  "nombre": "Sentadillas",
+  "descripcion": "Ejercicio compuesto para piernas",
+  "categoria": "fuerza",
+  "grupoMuscular": "piernas",
+  "equipamiento": "barra",
+  "videoUrl": "https://youtube.com/watch?v=ejemplo",
+  "imagenUrl": "https://ejemplo.com/sentadillas.jpg",
+  "instrucciones": "1. Colócate de pie. 2. Desciende. 3. Sube."
+}</textarea>
+                    <button onclick="createExercise()">POST /exercises/create</button>
+                    <div class="response" id="createExerciseResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Listar Ejercicios</h3>
+                    <button onclick="getAllExercises()">GET /exercises</button>
+                    <div class="response" id="getAllExercisesResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Obtener Ejercicio</h3>
+                    <input type="text" id="getExerciseId" placeholder="exerciseId">
+                    <button onclick="getExerciseById()">GET /exercises/:exerciseId</button>
+                    <div class="response" id="getExerciseByIdResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== RUTINAS ==================== -->
+            <section class="section" id="routines">
+                <h2>📋 Rutinas</h2>
+                
+                <div class="endpoint">
+                    <h3>Crear Rutina</h3>
+                    <textarea id="createRoutineBody" rows="15">{
+  "nombre": "Rutina Full Body",
+  "descripcion": "Rutina completa",
+  "ejercicios": [
+    {
+      "exerciseId": "PEGAR_ID_AQUI",
+      "sets": 4,
+      "reps": 12,
+      "weight": 60,
+      "notes": "Incrementar peso"
+    }
+  ]
+}</textarea>
+                    <button onclick="createRoutine()">POST /routines/create</button>
+                    <div class="response" id="createRoutineResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Asignar Rutina a Usuario</h3>
+                    <input type="text" id="assignUserId" placeholder="userId">
+                    <input type="text" id="assignRoutineId" placeholder="routineId">
+                    <button onclick="assignRoutine()">POST /routines/assign</button>
+                    <div class="response" id="assignRoutineResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Obtener Rutina del Usuario</h3>
+                    <input type="text" id="getUserRoutineId" placeholder="userId">
+                    <button onclick="getUserRoutine()">GET /routines/user/:userId</button>
+                    <div class="response" id="getUserRoutineResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Obtener Rutina por ID</h3>
+                    <input type="text" id="getRoutineId" placeholder="routineId">
+                    <button onclick="getRoutineById()">GET /routines/:routineId</button>
+                    <div class="response" id="getRoutineByIdResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== PROGRESO ==================== -->
+            <section class="section" id="progress">
+                <h2>📊 Progreso</h2>
+                
+                <div class="endpoint">
+                    <h3>Registrar Progreso</h3>
+                    <input type="text" id="progressUserId" placeholder="userId" style="width: 100%; margin-bottom: 10px;">
+                    <textarea id="logProgressBody" rows="12">{
+  "exercises": [
+    {
+      "exerciseId": "PEGAR_ID_AQUI",
+      "completedSets": 4,
+      "completedReps": 12,
+      "weight": 60,
+      "notes": "Excelente sesión"
+    }
+  ],
+  "notes": "Primera sesión completada"
+}</textarea>
+                    <button onclick="logProgress()">POST /routines/user/:userId/progress</button>
+                    <div class="response" id="logProgressResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== RACHAS ==================== -->
+            <section class="section" id="streaks">
+                <h2>🔥 Rachas</h2>
+                
+                <div class="endpoint">
+                    <h3>Hacer Check-in</h3>
+                    <input type="text" id="checkinUserId" placeholder="userId">
+                    <input type="text" id="checkinClassId" placeholder="classId/routineId">
+                    <button onclick="checkIn()">POST /streaks/check-in</button>
+                    <div class="response" id="checkInResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Racha</h3>
+                    <input type="text" id="streakUserId" placeholder="userId">
+                    <button onclick="getStreak()">GET /streaks/streak/:userId</button>
+                    <div class="response" id="getStreakResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Historial</h3>
+                    <input type="text" id="historyUserId" placeholder="userId">
+                    <button onclick="getHistory()">GET /streaks/history?userId=</button>
+                    <div class="response" id="getHistoryResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== INSCRIPCIONES ==================== -->
+            <section class="section" id="registrations">
+                <h2>📝 Inscripciones</h2>
+                
+                <div class="endpoint">
+                    <h3>Crear Inscripción</h3>
+                    <textarea id="createRegistrationBody" rows="5">{
+  "userId": "USER_ID",
+  "gymId": "GYM_ID",
+  "membershipType": "monthly",
+  "startDate": "2025-01-01"
+}</textarea>
+                    <button onclick="createRegistration()">POST /registrations</button>
+                    <div class="response" id="createRegistrationResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Mis Inscripciones</h3>
+                    <input type="text" id="getRegistrationsUserId" placeholder="userId">
+                    <button onclick="getUserRegistrations()">GET /registrations?userId=</button>
+                    <div class="response" id="getUserRegistrationsResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Historial de Inscripciones</h3>
+                    <input type="text" id="getRegistrationHistoryUserId" placeholder="userId">
+                    <button onclick="getRegistrationHistory()">GET /registrations/history?userId=</button>
+                    <div class="response" id="getRegistrationHistoryResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Cancelar Inscripción</h3>
+                    <input type="text" id="cancelRegistrationId" placeholder="registrationId">
+                    <button onclick="cancelRegistration()">POST /registrations/:id/cancel</button>
+                    <div class="response" id="cancelRegistrationResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== PAGOS ==================== -->
+            <section class="section" id="payments">
+                <h2>💳 Pagos</h2>
+                
+                <div class="endpoint">
+                    <h3>Procesar Pago</h3>
+                    <textarea id="processPaymentBody" rows="6">{
+  "userId": "USER_ID",
+  "amount": 5000,
+  "paymentMethod": "mercadopago",
+  "description": "Cuota mensual"
+}</textarea>
+                    <button onclick="processPayment()">POST /payments/process</button>
+                    <div class="response" id="processPaymentResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Estado de Pago del Usuario</h3>
+                    <input type="text" id="paymentStatusUserId" placeholder="userId">
+                    <button onclick="getPaymentStatus()">GET /payments/status/:userId</button>
+                    <div class="response" id="getPaymentStatusResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Historial de Pagos</h3>
+                    <input type="text" id="paymentHistoryUserId" placeholder="userId">
+                    <button onclick="getPaymentHistory()">GET /payments/history/:userId</button>
+                    <div class="response" id="getPaymentHistoryResponse"></div>
+                </div>
+            </section>
+
+            <!-- ==================== FINANZAS ==================== -->
+            <section class="section" id="finance">
+                <h2>💰 Finanzas</h2>
+                
+                <div class="endpoint">
+                    <h3>Obtener Configuración Financiera</h3>
+                    <button onclick="getFinanceSettings()">GET /finance/settings</button>
+                    <div class="response" id="getFinanceSettingsResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Actualizar Configuración</h3>
+                    <textarea id="updateFinanceSettingsBody" rows="6">{
+  "monthlyFee": 5000,
+  "dueDay": 10,
+  "lateFee": 500,
+  "currency": "ARS"
+}</textarea>
+                    <button onclick="updateFinanceSettings()">PUT /finance/settings</button>
+                    <div class="response" id="updateFinanceSettingsResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Dashboard Financiero</h3>
+                    <button onclick="getFinanceDashboard()">GET /finance/dashboard</button>
+                    <div class="response" id="getFinanceDashboardResponse"></div>
+                </div>
+
+                <div class="endpoint">
+                    <h3>Ver Deudores</h3>
+                    <button onclick="getDebtors()">GET /finance/debtors</button>
+                    <div class="response" id="getDebtorsResponse"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

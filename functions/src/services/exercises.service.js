@@ -5,13 +5,13 @@
 //Exportar { ...getExternalExercisesService, ...createCustomExerciseService, ...getCustomExercisesService }.
 
 const { getGymExercises, getExerciseDetails } = require('./exercises/readExercise.service');
-const { createCustomExercise } = require('./exercises/createExercise.service');
+const { createExercise } = require('./exercises/createExercise.service');
 const { updateExercise, archiveExercise } = require('./exercises/updateExercise.service');
 
 module.exports = {
     getGymExercises,
     getExerciseDetails,
-    createCustomExercise,
+    createExercise,
     updateExercise,
     archiveExercise
 };
