@@ -1,11 +1,3 @@
-//readExercise.service.js:
-
-///Función getExternalExercises(queryParams): (Lógica de Proxy: Llama a la API externa de ejercicios con axios y devuelve los datos).
-
-//Función getCustomExercises(gymId): (Lógica: Llama a exercisesRepo.getCustomExercisesFromDB(gymId)).
-
-//Exportar { getExternalExercises, getCustomExercises }
-
 const exercisesRepository = require('../../repositories/exercises.repository');
 
 /**
@@ -73,7 +65,41 @@ const getExerciseDetails = async (gymId, exerciseId) => {
     }
 };
 
+// 🆕 AGREGAR: Obtener ejercicio por ID (para rutinas)
+const getExerciseById = async (exerciseId) => {
+    console.log(`SERVICE. Obteniendo ejercicio ${exerciseId}`);
+    
+    try {
+        const exercise = await exercisesRepository.getExerciseByIdFromDB(exerciseId);
+        
+        if (!exercise) {
+            throw new Error(`Ejercicio ${exerciseId} no encontrado`);
+        }
+        
+        return exercise;
+        
+    } catch (error) {
+        console.error(`SERVICE. Error obteniendo ejercicio:`, error.message);
+        throw error;
+    }
+};
+
+// 🆕 AGREGAR: Obtener todos los ejercicios
+const getAllExercises = async () => {
+    console.log('SERVICE. Obteniendo todos los ejercicios');
+    
+    try {
+        const exercises = await exercisesRepository.getAllExercisesFromDB();
+        return exercises;
+    } catch (error) {
+        console.error('SERVICE. Error obteniendo ejercicios:', error.message);
+        throw error;
+    }
+};
+
 module.exports = {
     getGymExercises,
-    getExerciseDetails
+    getExerciseDetails,
+    getExerciseById,      // 🆕
+    getAllExercises       // 🆕
 };

@@ -8,14 +8,13 @@ const createRoutineSchema = Joi.object({
     descripcion: Joi.string().optional().allow(''),
     ejercicios: Joi.array().items(
         Joi.object({
-            exerciseId: Joi.string().required(),
-            nombre: Joi.string().required().messages({
-                'any.required': 'El nombre del ejercicio es obligatorio'
+            exerciseId: Joi.string().required().messages({
+                'any.required': 'El exerciseId es obligatorio'
             }),
             sets: Joi.number().integer().min(1).required(),
             reps: Joi.number().integer().min(1).required(),
-            weight: Joi.number().optional(),
-            notes: Joi.string().optional()
+            weight: Joi.number().optional(),  // ✅ Totalmente opcional
+            notes: Joi.string().optional().allow('')  // ✅ Opcional y puede ser vacío
         })
     ).min(1).required().messages({
         'array.min': 'Debe incluir al menos un ejercicio'
