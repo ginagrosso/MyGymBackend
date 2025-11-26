@@ -2,253 +2,216 @@ const paymentsRepo = require('../repositories/payments.repository');
 const financeRepo = require('../repositories/finance.repository');
 const { financeSettingsSchema } = require('../schemas/financeSettings.schema');
 
+/**
+ * 1. Obtener transacciones (Filtradas por Gym)
+ */
+const getAllTransactions = async (gymId, preFetchedData = null) => {
+    console.log(`SERVICIO: Obteniendo transacciones para gym: ${gymId}`);
+    
+    const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
+    if (!allUsersPayments) return [];
 
-const getAllTransactions = async (preFetchedData = null) => {
-  console.log('SERVICIO: Generando reporte global de transacciones...');
+    let globalTransactions = [];
+    
+    Object.entries(allUsersPayments).forEach(([userId, userPaymentsObj]) => {
+        // FILTRO CRÍTICO: Solo incluimos pagos donde payment.gymId coincida con quien consulta
+        const userPayments = Object.values(userPaymentsObj)
+            .filter(payment => payment.gymId === gymId) // <--- ¡AQUÍ ESTÁ EL CANDADO! 🔒
+            .map(payment => ({
+                ...payment,
+                userId: userId,
+                dateFormatted: new Date(payment.createdAt).toISOString()
+            }));
+        
+        if (userPayments.length > 0) {
+            globalTransactions = [...globalTransactions, ...userPayments];
+        }
+    });
 
-  
-  const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
-
-  if (!allUsersPayments) return [];
-
-  let globalTransactions = [];
-
-  Object.entries(allUsersPayments).forEach(([userId, userPaymentsObj]) => {
-    const userPayments = Object.values(userPaymentsObj).map(payment => ({
-      ...payment,
-      userId: userId,
-      dateFormatted: new Date(payment.createdAt).toISOString()
-    }));
-    globalTransactions = [...globalTransactions, ...userPayments];
-  });
-
-  return globalTransactions.sort((a, b) => b.createdAt - a.createdAt);
+    return globalTransactions.sort((a, b) => b.createdAt - a.createdAt);
 };
 
+/**
+ * 2. Obtener deudores (Filtrados por Gym)
+ */
+const getDebtorsList = async (gymId, preFetchedData = null) => {
+    console.log(`SERVICIO: Calculando deudores para gym: ${gymId}`);
+    
+    const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
+    if (!allUsersPayments) return [];
 
-const getDebtorsList = async (preFetchedData = null) => {
-  console.log('SERVICIO: Generando lista de deudores...');
+    const debtors = [];
+    const today = new Date();
 
-  const allUsersPayments = preFetchedData || await paymentsRepo.getAllPaymentsDB();
+    Object.entries(allUsersPayments).forEach(([userId, userPaymentsObj]) => {
+        // 1. Obtener pagos de ESTE usuario para ESTE gym
+        const paymentsArray = Object.values(userPaymentsObj)
+            .filter(payment => payment.gymId === gymId) // <--- FILTRO 🔒
+            .sort((a, b) => b.createdAt - a.createdAt);
+        
+        // Si el usuario nunca pagó a ESTE gym, no podemos calcular deuda con esta lógica
+        // (Se asume que solo clientes con historial cuentan)
+        if (paymentsArray.length === 0) return; 
 
-  if (!allUsersPayments) return [];
+        const lastPayment = paymentsArray[0];
+        const lastPaymentDate = new Date(lastPayment.createdAt);
+        
+        const expirationDate = new Date(lastPaymentDate);
+        expirationDate.setDate(expirationDate.getDate() + 30); 
 
-  const debtors = [];
-  const today = new Date();
+        if (today > expirationDate) {
+            const diffTime = Math.abs(today - expirationDate);
+            const daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-  Object.entries(allUsersPayments).forEach(([userId, userPaymentsObj]) => {
-    const paymentsArray = Object.values(userPaymentsObj);
-    paymentsArray.sort((a, b) => b.createdAt - a.createdAt);
+            debtors.push({
+                userId: userId,
+                lastPaymentDate: lastPaymentDate.toISOString(),
+                daysOverdue: daysOverdue,
+                status: 'overdue'
+            });
+        }
+    });
 
-    const lastPayment = paymentsArray[0];
-    const lastPaymentDate = new Date(lastPayment.createdAt);
-
-    const expirationDate = new Date(lastPaymentDate);
-    expirationDate.setDate(expirationDate.getDate() + 30);
-
-    if (today > expirationDate) {
-      const diffTime = Math.abs(today - expirationDate);
-      const daysOverdue = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-      debtors.push({
-        userId: userId,
-        lastPaymentDate: lastPaymentDate.toISOString(),
-        expirationDate: expirationDate.toISOString(),
-        daysOverdue: daysOverdue,
-        status: 'overdue'
-      });
-    }
-  });
-
-  return debtors.sort((a, b) => b.daysOverdue - a.daysOverdue);
+    return debtors.sort((a, b) => b.daysOverdue - a.daysOverdue);
 };
 
-
+/**
+ * 3. Registrar pago manual
+ */
 const registerManualPayment = async (gymId, data) => {
-  console.log('SERVICIO: Registrando pago manual:', data);
-
-  const paymentRecord = {
-    amount: data.amount,
-    method: 'cash',
-    gymId: gymId,
-    concept: data.concept,
-    transactionToken: 'MANUAL_ENTRY',
-    status: 'completed',
-    createdAt: Date.now()
-  };
-
-  const savedPayment = await paymentsRepo.recordPaymentInDB(data.userId, paymentRecord);
-  return savedPayment;
+    const paymentRecord = {
+        amount: data.amount,
+        method: 'cash',
+        gymId: gymId, // Se guarda quién cobró
+        concept: data.concept,
+        transactionToken: 'MANUAL_ENTRY',
+        status: 'completed',
+        createdAt: Date.now()
+    };
+    return await paymentsRepo.recordPaymentInDB(data.userId, paymentRecord);
 };
 
-const getDashboardData = async (period) => {
-  console.log(`SERVICIO: Generando dashboard para periodo: ${period || 'Actual'}`);
+/**
+ * 4. Generar Dashboard (Ahora multi-tenant)
+ */
+const getDashboardData = async (gymId, period) => {
+    console.log(`SERVICIO: Dashboard para gym ${gymId}, periodo ${period || 'Actual'}`);
 
-  const allRawData = await paymentsRepo.getAllPaymentsDB();
+    // Bajamos todo una vez, pero las funciones de abajo filtrarán lo que no es nuestro
+    const allRawData = await paymentsRepo.getAllPaymentsDB();
 
-  const now = new Date();
-  let targetDate;
+    const now = new Date();
+    let targetDate = period ? new Date(period.split('-')[0], period.split('-')[1] - 1, 1) : now;
+    
+    const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getTime();
+    const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59).getTime();
 
-  if (period) {
-    const [year, month] = period.split('-');
-    targetDate = new Date(year, month - 1, 1);
-  } else {
-    targetDate = now;
-  }
+    // Obtenemos SOLO las transacciones de ESTE gym
+    const allTransactions = await getAllTransactions(gymId, allRawData);
 
-  const startOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1).getTime();
-  const endOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59).getTime();
+    const monthlyTransactions = allTransactions.filter(t => {
+        return t.createdAt >= startOfMonth && t.createdAt <= endOfMonth;
+    });
 
-  const allTransactions = await getAllTransactions(allRawData);
+    let totalRevenue = 0;
+    let cashRevenue = 0;
+    let digitalRevenue = 0;
 
-  const monthlyTransactions = allTransactions.filter(t => {
-    return t.createdAt >= startOfMonth && t.createdAt <= endOfMonth;
-  });
+    monthlyTransactions.forEach(t => {
+        const amount = Number(t.amount) || 0;
+        totalRevenue += amount;
+        (t.method === 'cash' || t.method === 'efectivo') ? cashRevenue += amount : digitalRevenue += amount;
+    });
 
-  let totalRevenue = 0;
-  let cashRevenue = 0;
-  let digitalRevenue = 0;
+    // Obtenemos SOLO los deudores de ESTE gym
+    const debtorsList = await getDebtorsList(gymId, allRawData);
 
-  monthlyTransactions.forEach(t => {
-    const amount = Number(t.amount) || 0;
-    totalRevenue += amount;
-
-    if (t.method === 'cash' || t.method === 'efectivo') {
-      cashRevenue += amount;
-    } else {
-      digitalRevenue += amount;
-    }
-  });
-
-  const debtorsList = await getDebtorsList(allRawData);
-  const debtorsCount = debtorsList.length;
-
-  const recentActivity = monthlyTransactions.length > 0
-    ? monthlyTransactions.slice(0, 5)
-    : allTransactions.slice(0, 5);
-
-  return {
-    period: period || `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`,
-    summary: {
-      totalRevenue,
-      cashRevenue,
-      digitalRevenue,
-      debtorsCount
-    },
-    recentActivity: recentActivity.map(t => ({
-      date: t.dateFormatted || new Date(t.createdAt).toISOString(),
-      user: t.userId,
-      amount: t.amount,
-      method: t.method,
-      concept: t.concept
-    }))
-  };
+    return {
+        period: period || `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`,
+        summary: {
+            totalRevenue,
+            cashRevenue,
+            digitalRevenue,
+            debtorsCount: debtorsList.length
+        },
+        recentActivity: monthlyTransactions.slice(0, 5)
+    };
 };
 
-
+// ... (getSettings y updateSettings quedan igual) ...
 const getSettings = async (gymId) => {
-  return await financeRepo.getFinanceSettingsFromDB(gymId);
+    return await financeRepo.getFinanceSettingsFromDB(gymId);
 };
-
 
 const updateSettings = async (gymId, data) => {
-  console.log('SERVICIO: Actualizando configuración financiera...');
-
-  const { error, value } = financeSettingsSchema.validate(data);
-  if (error) {
-    throw new Error(error.details[0].message);
-  }
-
-  return await financeRepo.saveFinanceSettingsInDB(gymId, value);
+    const { error, value } = financeSettingsSchema.validate(data);
+    if (error) throw new Error(error.details[0].message);
+    return await financeRepo.saveFinanceSettingsInDB(gymId, value);
 };
 
+/**
+ * 7. Reporte Mensual (Filtrado)
+ */
+const getMonthlyReport = async (gymId, month, year) => {
+    const allTransactions = await getAllTransactions(gymId); // Filtra por gymId
+    
+    const transactions = allTransactions.filter(t => {
+        const date = new Date(t.createdAt);
+        return (date.getMonth() + 1) === parseInt(month) && date.getFullYear() === parseInt(year);
+    });
 
-const getMonthlyReport = async (month, year) => {
-  console.log(`SERVICIO: Generando reporte para ${month}/${year}`);
+    const dailyBreakdown = {};
+    let totalMonth = 0;
 
-  const allTransactions = await getAllTransactions();
+    transactions.forEach(t => {
+        const day = new Date(t.createdAt).getDate();
+        dailyBreakdown[day] = (dailyBreakdown[day] || 0) + (Number(t.amount) || 0);
+        totalMonth += (Number(t.amount) || 0);
+    });
 
-  const transactions = allTransactions.filter(t => {
-    const date = new Date(t.createdAt);
-    return (date.getMonth() + 1) === parseInt(month) && date.getFullYear() === parseInt(year);
-  });
-
-  const dailyBreakdown = {};
-  let totalMonth = 0;
-
-  transactions.forEach(t => {
-    const day = new Date(t.createdAt).getDate();
-    if (!dailyBreakdown[day]) dailyBreakdown[day] = 0;
-
-    const amount = Number(t.amount) || 0;
-    dailyBreakdown[day] += amount;
-    totalMonth += amount;
-  });
-
-  return {
-    period: `${year}-${month}`,
-    totalIncome: totalMonth,
-    transactionCount: transactions.length,
-    dailyBreakdown
-  };
+    return { period: `${year}-${month}`, totalIncome: totalMonth, transactionCount: transactions.length, dailyBreakdown };
 };
 
+/**
+ * 8. Detalle de Factura (Seguro)
+ */
+const getInvoiceDetails = async (gymId, paymentId) => {
+    const allTransactions = await getAllTransactions(gymId); // Solo busca en MIS pagos
+    const transaction = allTransactions.find(t => t.id === paymentId);
 
-const getInvoiceDetails = async (paymentId) => {
-  console.log(`SERVICIO: Buscando comprobante ${paymentId}`);
+    if (!transaction) return null;
 
-  const allTransactions = await getAllTransactions();
-  const transaction = allTransactions.find(t => t.id === paymentId);
-
-  if (!transaction) return null;
-
-  return {
-    invoiceId: transaction.id,
-    issueDate: new Date(transaction.createdAt).toISOString(),
-    customer: {
-      id: transaction.userId,
-      name: "Socio " + transaction.userId
-    },
-    items: [
-      { description: transaction.concept || "Cuota Gimnasio", amount: transaction.amount }
-    ],
-    total: transaction.amount,
-    paymentMethod: transaction.method,
-    status: 'PAGADO'
-  };
+    return {
+        invoiceId: transaction.id,
+        issueDate: new Date(transaction.createdAt).toISOString(),
+        customer: { id: transaction.userId, name: "Socio " + transaction.userId },
+        items: [{ description: transaction.concept || "Cuota", amount: transaction.amount }],
+        total: transaction.amount,
+        paymentMethod: transaction.method,
+        status: 'PAGADO'
+    };
 };
 
+/**
+ * 9. Recordatorios (Filtrados)
+ */
+const sendPaymentReminders = async (gymId, targetUserIds) => {
+    const debtors = await getDebtorsList(gymId); // Solo mis deudores
+    let recipients = targetUserIds && targetUserIds.length > 0 
+        ? debtors.filter(d => targetUserIds.includes(d.userId))
+        : debtors;
 
-const sendPaymentReminders = async (targetUserIds) => {
-  console.log('SERVICIO: Iniciando proceso de recordatorios...');
-
-  const debtors = await getDebtorsList();
-  let recipients = [];
-
-  if (targetUserIds && targetUserIds.length > 0) {
-    recipients = debtors.filter(d => targetUserIds.includes(d.userId));
-  } else {
-    recipients = debtors;
-  }
-
-  const results = recipients.map(d => ({
-    userId: d.userId,
-    emailSent: true,
-    message: `Hola! Tu cuota venció hace ${d.daysOverdue} días. Por favor regulariza tu situación.`
-  }));
-
-  console.log(`Recordatorios enviados: ${results.length}`);
-  return results;
+    return recipients.map(d => ({ userId: d.userId, emailSent: true, message: `Tu cuota venció hace ${d.daysOverdue} días.` }));
 };
 
 module.exports = {
-  getAllTransactions,
-  getDebtorsList,
-  registerManualPayment,
-  getDashboardData,
-  getSettings,
-  updateSettings,
-  getMonthlyReport,
-  getInvoiceDetails,
-  sendPaymentReminders
+    getAllTransactions,
+    getDebtorsList,
+    registerManualPayment,
+    getDashboardData,
+    getSettings,
+    updateSettings,
+    getMonthlyReport,
+    getInvoiceDetails,
+    sendPaymentReminders
 };
