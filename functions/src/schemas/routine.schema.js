@@ -13,8 +13,8 @@ const createRoutineSchema = Joi.object({
             }),
             sets: Joi.number().integer().min(1).required(),
             reps: Joi.number().integer().min(1).required(),
-            weight: Joi.number().optional(),  // ✅ Totalmente opcional
-            notes: Joi.string().optional().allow('')  // ✅ Opcional y puede ser vacío
+            weight: Joi.number().optional(),
+            notes: Joi.string().optional().allow('')
         })
     ).min(1).required().messages({
         'array.min': 'Debe incluir al menos un ejercicio'
@@ -31,6 +31,7 @@ const assignRoutineSchema = Joi.object({
 });
 
 const logProgressSchema = Joi.object({
+    date: Joi.string().optional(), // Formato: "YYYY-MM-DD"
     exercises: Joi.array().items(
         Joi.object({
             exerciseId: Joi.string().required(),

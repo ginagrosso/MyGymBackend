@@ -52,7 +52,7 @@ app.post('/check-in', async (req, res) => {
  * GET /streak/:userId
  * Obtener racha de un usuario
  */
-app.get('/streak/:userId', async (req, res) => {
+app.get('/:userId', async (req, res) => {
     console.log('=== GET /streak/:userId ===');
     console.log('Params:', req.params);
     

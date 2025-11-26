@@ -27,7 +27,6 @@ const createRoutineInDB = async (data) => {
     const newRoutineRef = db.ref('routines').push();
     const routineId = newRoutineRef.key;
     
-    // 🔥 Limpiar undefined antes de guardar
     const cleanedData = cleanObject(data);
     
     const fullData = {
@@ -36,8 +35,6 @@ const createRoutineInDB = async (data) => {
         createdAt: Date.now(),
         isArchived: false
     };
-    
-    console.log('Datos limpios a guardar:', JSON.stringify(fullData, null, 2));
     
     await newRoutineRef.set(fullData);
     
@@ -50,7 +47,6 @@ const createRoutineInDB = async (data) => {
 const updateRoutineInDB = async (routineId, data) => {
     console.log(`REPO. Actualizando rutina ${routineId}`);
     
-    // 🔥 Limpiar undefined antes de actualizar
     const cleanedData = cleanObject(data);
     
     await db.ref(`routines/${routineId}`).update(cleanedData);
@@ -94,10 +90,33 @@ const assignRoutineToUserInDB = async (userId, routineId) => {
     console.log(`REPO. Rutina asignada exitosamente`);
 };
 
+// 🆕 Guardar progreso
+const saveProgressInDB = async (progressData) => {
+    console.log('REPO. Guardando progreso en DB');
+    
+    const { userId, routineId, date } = progressData;
+    
+    // Estructura: progress/{userId}/{routineId}/{date}
+    const progressRef = db.ref(`progress/${userId}/${routineId}/${date}`);
+    
+    // Limpiar undefined
+    const cleanedData = cleanObject(progressData);
+    
+    await progressRef.set(cleanedData);
+    
+    console.log(`REPO. Progreso guardado en progress/${userId}/${routineId}/${date}`);
+    
+    return {
+        progressId: `${userId}_${routineId}_${date}`,
+        ...cleanedData
+    };
+};
+
 module.exports = {
     createRoutineInDB,
     updateRoutineInDB,
     getRoutineDetailsFromDB,
     getUserActiveRoutineIdFromDB,
-    assignRoutineToUserInDB
+    assignRoutineToUserInDB,
+    saveProgressInDB
 };
