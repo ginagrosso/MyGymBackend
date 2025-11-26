@@ -1,7 +1,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const gymsService = require('../src/services/gyms.service');
+const authService = require('../src/services/auth.service');
 const functions = require('firebase-functions');
 const loggingMiddleware = require('../src/middlewares/logging.middleware');
 const { getSuccessResponseObject, getErrorResponseObject } = require('../src/utils/responseHelpers');
@@ -11,25 +11,26 @@ const app = express();
 
 app.use(cors({
     origin: ['http://localhost:3000', 'https://your-production-domain.com'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
-
 app.use(loggingMiddleware);
 
-app.post('/auth/register/gym', async (req, res) => {
+
+app.post('/auth/login', async (req, res) => {
     try {
-        const nuevoGym = await gymsService.registerGym(req.body);
-        const response = getSuccessResponseObject(nuevoGym, 'Gimnasio registrado con éxito');
-        return res.status(httpStatusCodes.created).json(response);
+        const loginData = req.body;
+        const loginResponse = await authService.login(loginData);
+        const response = getSuccessResponseObject(loginResponse, 'Login exitoso');
+        return res.status(httpStatusCodes.ok).json(response);
     } catch (error) {
         const errorResponse = getErrorResponseObject(error);
         const statusCode = errorResponse.statusCode;
         delete errorResponse.statusCode;
         return res.status(statusCode).json(errorResponse);
-    }
+    };
 });
 
 module.exports = functions.https.onRequest(app);

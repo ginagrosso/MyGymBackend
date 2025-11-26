@@ -21,6 +21,9 @@ const registerClientSchema = Joi.object({
     birthDate: Joi.string().required().messages({
         'any.required': 'La fecha de nacimiento es obligatoria'
     }),
+    gender: Joi.string().valid('male', 'female', 'other').optional().messages({
+        'any.only': 'El género debe ser male, female u other'
+    }),
     avatarUri: Joi.string().uri().optional().messages({
         'string.uri': 'La URL de la imagen debe ser válida'
     }),
@@ -84,6 +87,9 @@ const updateUserSchema = Joi.object({
     name: Joi.string().min(2).optional().messages({
         'string.min': 'El nombre debe tener al menos 2 caracteres'
     }),
+    gender: Joi.string().valid('male', 'female', 'other').optional().messages({
+        'any.only': 'El género debe ser male, female u other'
+    }),
     phone: Joi.string().optional().messages({
         'string.phone': 'El teléfono debe tener un formato válido'
     }),
@@ -98,9 +104,31 @@ const updateUserSchema = Joi.object({
     })
 }).min(1);
 
+const loginSchema = Joi.object({
+    email: Joi.string().email().required().messages({
+        'string.email': 'El email debe tener un formato válido',
+        'any.required': 'El email es obligatorio'
+    }),
+    password: Joi.string().required().messages({
+        'any.required': 'La contraseña es obligatoria'
+    })
+});
+
+const changePasswordSchema = Joi.object({
+    currentPassword: Joi.string().required().messages({
+        'any.required': 'La contraseña actual es obligatoria'
+    }),
+    newPassword: Joi.string().min(6).required().messages({
+        'string.min': 'La nueva contraseña debe tener al menos 6 caracteres',
+        'any.required': 'La nueva contraseña es obligatoria'
+    })
+});
+
 module.exports = {
     registerClientSchema,
     registerGymSchema,
     updateGymSchema,
-    updateUserSchema
+    updateUserSchema,
+    loginSchema,
+    changePasswordSchema
 };

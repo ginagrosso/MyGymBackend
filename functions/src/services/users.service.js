@@ -1,10 +1,10 @@
-const {registerClient} = require('./users/createUser.service');
-const {getUserByUid, getUserByEmail} = require('./users/readUser.service');
-const {updateUser} = require('./users/updateUser.service');
+const { registerClient } = require('./users/createUser.service');
+const { getUserProfile } = require('./users/readUser.service');
+const { updateUserProfile, changePassword } = require('./users/updateUser.service');
 
 module.exports = {
     registerClient,
-    getUserByUid,
-    getUserByEmail,
-    updateUser
-}
+    getUserProfile,
+    updateUserProfile,
+    changePassword
+};

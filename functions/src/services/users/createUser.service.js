@@ -27,6 +27,7 @@ const registerClient = async (data) => {
             name: value.name,
             dni: value.dni,
             birthDate: value.birthDate,
+            gender: value.gender || null,
             userType: 'client',
             avatarUri: value.avatarUri || null,
             phone: value.phone || null,
@@ -51,7 +52,6 @@ const registerClient = async (data) => {
         };
         
     } catch (error) {
-
         if (error.code === 'auth/email-already-exists') {
             throw new DataValidationError('El email ya está registrado');
         }
