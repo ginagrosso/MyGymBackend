@@ -49,35 +49,6 @@ app.post('/check-in', async (req, res) => {
 });
 
 /**
- * GET /streak/:userId
- * Obtener racha de un usuario
- */
-app.get('/:userId', async (req, res) => {
-    console.log('=== GET /streak/:userId ===');
-    console.log('Params:', req.params);
-    
-    try {
-        const { userId } = req.params;
-        
-        const streakData = await getUserStreak(userId);
-        
-        console.log('Racha obtenida exitosamente');
-        
-        res.status(200).json({
-            success: true,
-            data: streakData
-        });
-        
-    } catch (error) {
-        console.error('Error en GET /streak:', error.message);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Error al obtener racha'
-        });
-    }
-});
-
-/**
  * GET /history
  * Historial de asistencias del usuario autenticado
  */
@@ -120,5 +91,36 @@ app.get('/history', async (req, res) => {
         });
     }
 });
+
+
+/**
+ * GET /streak/:userId
+ * Obtener racha de un usuario
+ */
+app.get('/:userId', async (req, res) => {
+    console.log('=== GET /streak/:userId ===');
+    console.log('Params:', req.params);
+    
+    try {
+        const { userId } = req.params;
+        
+        const streakData = await getUserStreak(userId);
+        
+        console.log('Racha obtenida exitosamente');
+        
+        res.status(200).json({
+            success: true,
+            data: streakData
+        });
+        
+    } catch (error) {
+        console.error('Error en GET /streak:', error.message);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error al obtener racha'
+        });
+    }
+});
+
 
 module.exports = functions.https.onRequest(app);
