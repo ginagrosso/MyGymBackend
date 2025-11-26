@@ -115,5 +115,55 @@ app.delete('/gyms/:gymId/clients/:clientId', validateFirebaseIdToken, async (req
     }
 });
 
+// Reactivar un cliente (protegido)
+app.patch('/gyms/:gymId/clients/:clientId/activate', validateFirebaseIdToken, async (req, res) => {
+    try {
+        const { gymId, clientId } = req.params;
+        const loggedUserId = req.user.uid;
+
+        const result = await userService.activateClient(gymId, clientId, loggedUserId);
+        
+        const response = getSuccessResponseObject(result, 'Cliente reactivado exitosamente');
+        return res.status(httpStatusCodes.ok).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
+
+// Actualizar perfil del gym logeado (protegido)
+app.put('/gyms/me', validateFirebaseIdToken, async (req, res) => {
+    try {
+        const uid = req.user.uid;
+        const updatedProfile = await gymsService.updateGymProfile(uid, req.body);
+        const response = getSuccessResponseObject(updatedProfile, 'Perfil del gimnasio actualizado exitosamente');
+        return res.status(httpStatusCodes.ok).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
+
+// Obtener estadísticas del gym (protegido)
+app.get('/gyms/:gymId/stats', validateFirebaseIdToken, async (req, res) => {
+    try {
+        const { gymId } = req.params;
+        const loggedUserId = req.user.uid;
+
+        const stats = await gymsService.getGymStats(gymId, loggedUserId);
+        
+        const response = getSuccessResponseObject(stats, 'Estadísticas obtenidas exitosamente');
+        return res.status(httpStatusCodes.ok).json(response);
+    } catch (error) {
+        const errorResponse = getErrorResponseObject(error);
+        const statusCode = errorResponse.statusCode;
+        delete errorResponse.statusCode;
+        return res.status(statusCode).json(errorResponse);
+    }
+});
 
 module.exports = functions.https.onRequest(app);
