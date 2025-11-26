@@ -21,6 +21,9 @@ const registerClientSchema = Joi.object({
     birthDate: Joi.string().required().messages({
         'any.required': 'La fecha de nacimiento es obligatoria'
     }),
+    gymId: Joi.string().required().messages({
+        'any.required': 'Debe seleccionar un gimnasio'
+    }),
     gender: Joi.string().valid('male', 'female', 'other').optional().messages({
         'any.only': 'El género debe ser male, female u other'
     }),

@@ -27,6 +27,7 @@ const registerClient = async (data) => {
             name: value.name,
             dni: value.dni,
             birthDate: value.birthDate,
+            gymId: value.gymId,
             gender: value.gender || null,
             userType: 'client',
             avatarUri: value.avatarUri || null,
@@ -48,7 +49,8 @@ const registerClient = async (data) => {
             uid: nuevoUser.uid,
             email: perfilUser.email,
             name: perfilUser.name,
-            userType: perfilUser.userType
+            userType: perfilUser.userType,
+            gymId: perfilUser.gymId
         };
         
     } catch (error) {
