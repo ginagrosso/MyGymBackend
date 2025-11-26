@@ -21,6 +21,9 @@ const registerClientSchema = Joi.object({
     birthDate: Joi.string().required().messages({
         'any.required': 'La fecha de nacimiento es obligatoria'
     }),
+    gymId: Joi.string().required().messages({
+        'any.required': 'Debe seleccionar un gimnasio'
+    }),
     gender: Joi.string().valid('male', 'female', 'other').optional().messages({
         'any.only': 'El género debe ser male, female u other'
     }),
@@ -30,10 +33,10 @@ const registerClientSchema = Joi.object({
     phone: Joi.string().optional().messages({
         'string.base': 'El teléfono debe ser un texto'
     }),
-    weight: Joi.number().min(20).max(300).optional().messages({
+    weight: Joi.number().min(20).max(500).optional().messages({
         'number.base': 'El peso debe ser un número',
         'number.min': 'El peso debe ser al menos 20kg',
-        'number.max': 'El peso no puede superar 300kg'
+        'number.max': 'El peso no puede superar 500kg'
     }),
     height: Joi.number().min(100).max(250).optional().messages({
         'number.base': 'La altura debe ser un número',

@@ -80,11 +80,36 @@ const findGymByEmailFromAuth = async (email) => {
     return gymRecord;
 };
 
+const getClientsFromGym = async (gymId) => {
+    console.log(`REPO. Buscando todos los clientes del gimnasio ${gymId}`);
+    
+    const usersRef = db.ref('users');
+    const snapshot = await usersRef
+        .orderByChild('gymId')
+        .equalTo(gymId)
+        .once('value');
+    
+    const usersData = snapshot.val();
+    
+    if (!usersData) {
+        return [];
+    }
+    
+    // Solo filtramos que sean clientes, nada más
+    const clients = Object.values(usersData).filter(user => 
+        user.userType === 'client'
+    );
+    
+    console.log(`Clientes encontrados: ${clients.length}`);
+    return clients;
+};
+
 module.exports = {
     createGymAuth,
     createGymProfileInDB,
     getGymProfileFromDB,
     getAllGymsFromDB,
     updateGymProfileInDB,
-    findGymByEmailFromAuth
+    findGymByEmailFromAuth,
+    getClientsFromGym
 }

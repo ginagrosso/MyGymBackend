@@ -1,6 +1,7 @@
 const admin = require('firebase-admin');
 const axios = require('axios');
 const userRepository = require('../../repositories/users.repository');
+const gymsRepository = require('../../repositories/gyms.repository');
 const { updateUserSchema, changePasswordSchema } = require('../../schemas/user.schema');
 const { DataValidationError, ResourceNotFoundError, AuthorizationError } = require('../../utils/httpStatusCodes');
 
@@ -66,7 +67,42 @@ const changePassword = async (uid, email, data) => {
     }
 };
 
+// Dar de baja un cliente (por gym admin)
+const deactivateClient = async (gymId, clientId, requestingUserId) => {
+    console.log(`SERVICIO. Dando de baja cliente ${clientId} del gym ${gymId}`);
+    
+    // 1. Verificar que el usuario que hace la request es el gym dueño
+    if (requestingUserId !== gymId) {
+        throw new AuthorizationError('No tenés permiso para dar de baja clientes de este gimnasio');
+    }
+    
+    // 2. Verificar que el gym existe
+    const gymProfile = await gymsRepository.getGymProfileFromDB(gymId);
+    if (!gymProfile || gymProfile.userType !== 'gym') {
+        throw new AuthorizationError('El usuario no es un gimnasio');
+    }
+    
+    // 3. Verificar que el cliente existe y pertenece a ese gym
+    const clientProfile = await userRepository.getUserProfileFromDB(clientId);
+    if (!clientProfile) {
+        throw new ResourceNotFoundError('Cliente no encontrado');
+    }
+    
+    if (clientProfile.gymId !== gymId) {
+        throw new AuthorizationError('El cliente no pertenece a este gimnasio');
+    }
+    
+    // 4. marcar como inactivo
+    await userRepository.updateUserProfileInDB(clientId, { isActive: false });
+    
+    return {
+        message: 'Cliente dado de baja exitosamente',
+        clientId: clientId
+    };
+};
+
 module.exports = {
     updateUserProfile,
-    changePassword
+    changePassword,
+    deactivateClient
 };

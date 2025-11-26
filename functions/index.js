@@ -20,7 +20,8 @@ exports.exercises = functions.https.onRequest(require('./modules/exercises'));
 exports.routines = functions.https.onRequest(require('./modules/routines'));
 exports.streaks = functions.https.onRequest(require('./modules/streaks'));
 
-// Módulos que venían comentados o inactivos en develop:
+
+exports.auth = functions.https.onRequest(require('./modules/auth'));
 exports.users = functions.https.onRequest(require('./modules/users'));
 exports.gyms = functions.https.onRequest(require('./modules/gyms'));
 exports.classes = functions.https.onRequest(require('./modules/classes'));
