@@ -101,8 +101,44 @@ const deactivateClient = async (gymId, clientId, requestingUserId) => {
     };
 };
 
+// Reactivar un cliente (por gym admin)
+const activateClient = async (gymId, clientId, requestingUserId) => {
+    console.log(`SERVICIO. Reactivando cliente ${clientId} del gym ${gymId}`);
+    
+    // Reutilizar la misma lógica de deactivate pero con isActive: true
+    // 1. Verificar permisos
+    if (requestingUserId !== gymId) {
+        throw new AuthorizationError('No tenés permiso para reactivar clientes de este gimnasio');
+    }
+    
+    // 2. Verificar que el gym existe
+    const gymProfile = await gymsRepository.getGymProfileFromDB(gymId);
+    if (!gymProfile || gymProfile.userType !== 'gym') {
+        throw new AuthorizationError('El usuario no es un gimnasio');
+    }
+    
+    // 3. Verificar que el cliente existe y pertenece a ese gym
+    const clientProfile = await userRepository.getUserProfileFromDB(clientId);
+    if (!clientProfile) {
+        throw new ResourceNotFoundError('Cliente no encontrado');
+    }
+    
+    if (clientProfile.gymId !== gymId) {
+        throw new AuthorizationError('El cliente no pertenece a este gimnasio');
+    }
+    
+    // 4. Marcar como activo
+    await userRepository.updateUserProfileInDB(clientId, { isActive: true });
+    
+    return {
+        message: 'Cliente reactivado exitosamente',
+        clientId: clientId
+    };
+};
+
 module.exports = {
     updateUserProfile,
     changePassword,
-    deactivateClient
+    deactivateClient,
+    activateClient
 };
