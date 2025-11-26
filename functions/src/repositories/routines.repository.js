@@ -1,104 +1,74 @@
-// //source/repository/routines.repository.js
-// Propósito: Manejar la creación y asignación de rutinas.
-// 
-// Importaciones: db (de ../utils/firebase).
-// 
-// Función createRoutineInDB(data):
-// 
-// Define const newRoutineRef = db.ref('routines').push().
-// 
-// Define fullData = { ...data, id: newRoutineRef.key, createdAt: Date.now(), isArchived: false }.
-// 
-// Usa newRoutineRef.set(fullData).
-// 
-// Devuelve fullData.
-// 
-// Función updateRoutineInDB(routineId, data):
-// 
-// Usa db.ref(routines/${routineId}).update(data). (Se usa para soft delete seteando isArchived: true).
-// 
-// Función assignRoutineToUserInDB(userId, routineId):
-// 
-// Usa db.ref(userRoutines/${userId}).set({ activeRoutineId: routineId }).
-// 
-// Función getUserActiveRoutineIdFromDB(userId):
-// 
-// Usa db.ref(userRoutines/${userId}/activeRoutineId).once('value').
-// 
-// Devuelve snapshot.val().
-// 
-// Función getRoutineDetailsFromDB(routineId):
-// 
-// Usa db.ref(routines/${routineId}).once('value').
-// 
-// Devuelve snapshot.val().
-// 
-// Exportar: Todas las funciones (createRoutineInDB, updateRoutineInDB, assignRoutineToUserInDB, getUserActiveRoutineIdFromDB, getRoutineDetailsFromDB).
-
 const { db } = require('../utils/firebase');
 
-// Crear una nueva rutina
+// 🆕 Helper para remover undefined/null recursivamente
+const cleanObject = (obj) => {
+    if (Array.isArray(obj)) {
+        return obj.map(item => cleanObject(item));
+    }
+    
+    if (obj !== null && typeof obj === 'object') {
+        const cleaned = {};
+        for (const key in obj) {
+            const value = obj[key];
+            if (value !== undefined && value !== null) {
+                cleaned[key] = cleanObject(value);
+            }
+        }
+        return cleaned;
+    }
+    
+    return obj;
+};
+
+// Crear rutina en DB
 const createRoutineInDB = async (data) => {
-    console.log(`REPO. Creando rutina`);
+    console.log('REPO. Creando rutina en DB');
     
     const newRoutineRef = db.ref('routines').push();
+    const routineId = newRoutineRef.key;
+    
+    const cleanedData = cleanObject(data);
+    
     const fullData = {
-        ...data,
-        id: newRoutineRef.key,
+        ...cleanedData,
+        id: routineId,
         createdAt: Date.now(),
         isArchived: false
     };
     
     await newRoutineRef.set(fullData);
-    console.log(`Rutina creada con ID: ${newRoutineRef.key}`);
+    
+    console.log(`REPO. Rutina creada con ID: ${routineId}`);
+    
     return fullData;
 };
 
-// Actualizar una rutina (incluye soft delete)
+// Actualizar rutina en DB
 const updateRoutineInDB = async (routineId, data) => {
     console.log(`REPO. Actualizando rutina ${routineId}`);
     
-    await db.ref(`routines/${routineId}`).update(data);
-    console.log(`Rutina actualizada`);
+    const cleanedData = cleanObject(data);
     
-    return await getRoutineDetailsFromDB(routineId);
+    await db.ref(`routines/${routineId}`).update(cleanedData);
+    
+    console.log(`REPO. Rutina actualizada`);
 };
 
-// Asignar rutina a un usuario
-const assignRoutineToUserInDB = async (userId, routineId) => {
-    console.log(`REPO. Asignando rutina ${routineId} al usuario ${userId}`);
+// Obtener detalles de rutina
+const getRoutineDetailsFromDB = async (routineId) => {
+    console.log(`REPO. Obteniendo rutina ${routineId}`);
     
-    await db.ref(`userRoutines/${userId}`).set({
-        activeRoutineId: routineId,
-        assignedAt: Date.now()
-    });
+    const snapshot = await db.ref(`routines/${routineId}`).once('value');
+    const routine = snapshot.val();
     
-    console.log(`Rutina asignada exitosamente`);
-    return { userId, routineId };
+    if (!routine) {
+        return null;
+    }
+    
+    return routine;
 };
 
-// Registrar progreso
-const logProgressInDB = async (userId, routineId, progressData) => {
-    console.log(`REPO. Registrando progreso para usuario ${userId}`);
-    
-    const dateString = new Date().toISOString().split('T')[0];
-    const progressRef = db.ref(`progress/${userId}/${dateString}`).push();
-    
-    const fullData = {
-        id: progressRef.key,
-        userId,
-        routineId,
-        ...progressData,
-        timestamp: Date.now(),
-        date: dateString
-    };
-    
-    await progressRef.set(fullData);
-    console.log(`Progreso registrado con ID: ${progressRef.key}`);
-    return fullData;
-};
-
-// Obtener ID de rutina activa de un usuario
+// Obtener ID de rutina activa del usuario
 const getUserActiveRoutineIdFromDB = async (userId) => {
     console.log(`REPO. Obteniendo rutina activa del usuario ${userId}`);
     
@@ -108,22 +78,45 @@ const getUserActiveRoutineIdFromDB = async (userId) => {
     return routineId;
 };
 
-// Obtener detalles de una rutina
-const getRoutineDetailsFromDB = async (routineId) => {
-    console.log(`REPO. Obteniendo detalles de la rutina ${routineId}`);
+// Asignar rutina a usuario
+const assignRoutineToUserInDB = async (userId, routineId) => {
+    console.log(`REPO. Asignando rutina ${routineId} al usuario ${userId}`);
     
-    const snapshot = await db.ref(`routines/${routineId}`).once('value');
-    const routine = snapshot.val();
+    await db.ref(`userRoutines/${userId}`).set({
+        activeRoutineId: routineId,
+        assignedAt: Date.now()
+    });
     
-    console.log(`Rutina encontrada:`, routine);
-    return routine;
+    console.log(`REPO. Rutina asignada exitosamente`);
+};
+
+// 🆕 Guardar progreso
+const saveProgressInDB = async (progressData) => {
+    console.log('REPO. Guardando progreso en DB');
+    
+    const { userId, routineId, date } = progressData;
+    
+    // Estructura: progress/{userId}/{routineId}/{date}
+    const progressRef = db.ref(`progress/${userId}/${routineId}/${date}`);
+    
+    // Limpiar undefined
+    const cleanedData = cleanObject(progressData);
+    
+    await progressRef.set(cleanedData);
+    
+    console.log(`REPO. Progreso guardado en progress/${userId}/${routineId}/${date}`);
+    
+    return {
+        progressId: `${userId}_${routineId}_${date}`,
+        ...cleanedData
+    };
 };
 
 module.exports = {
     createRoutineInDB,
     updateRoutineInDB,
-    assignRoutineToUserInDB,
-    getUserActiveRoutineIdFromDB,
     getRoutineDetailsFromDB,
-    logProgressInDB
+    getUserActiveRoutineIdFromDB,
+    assignRoutineToUserInDB,
+    saveProgressInDB
 };

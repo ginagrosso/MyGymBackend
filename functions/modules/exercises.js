@@ -1,42 +1,26 @@
-//functions/modules/exercises.js
-//Importar express, cors, y el pasamano exerciseService.
-//Crear la app de Express: const app = express();.
-//Endpoint GET /external: (Proxy para ExRxAPI.ts y ExerciseAPI.ts) Llama a exerciseService.getExternalExercises(req.query).
-//Endpoint POST /custom: (Para que el gym cree ejercicios) Llama a exerciseService.createCustomExercise(req.body).
-//Endpoint GET /custom/:gymId: (Para biblioteca-ejercicios.tsx) Llama a exerciseService.getCustomExercises(req.params.gymId).
-//Exportar app.
-
 const functions = require('firebase-functions');
 const express = require('express');
 const cors = require('cors');
-const { createCustomExercise } = require('../src/services/exercises/createExercise.service');
-const { getGymExercises, getExerciseDetails } = require('../src/services/exercises/readExercise.service');
+const { createExercise } = require('../src/services/exercises/createExercise.service');
+const { getGymExercises, getExerciseDetails, getExerciseById, getAllExercises } = require('../src/services/exercises/readExercise.service');
 const { updateExercise, archiveExercise } = require('../src/services/exercises/updateExercise.service');
 
 const app = express();
 
 // Middlewares
-//cors permite cualquier origen, cambiar en producción
 app.use(cors({ origin: true }));
 app.use(express.json());
 
 /**
- * POST /
+ * POST /create
  * Crear ejercicio personalizado
  */
 app.post('/create', async (req, res) => {
+    console.log('=== POST /exercises/create ===');
+    console.log('Body recibido:', req.body);
     
     try {
-        const { gymId, ...exerciseData } = req.body;
-        
-        if (!gymId) {
-            return res.status(400).json({
-                success: false,
-                message: 'El gymId es requerido'
-            });
-        }
-        
-        const exercise = await createCustomExercise(gymId, exerciseData);
+        const exercise = await createExercise(req.body);
         
         res.status(201).json({
             success: true,
@@ -45,10 +29,59 @@ app.post('/create', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error en POST /exercises:', error.message);
-        res.status(400).json({
+        console.error('Error en POST /exercises/create:', error);
+        res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Error al crear ejercicio'
+        });
+    }
+});
+
+/**
+ * 🆕 GET /
+ * Obtener todos los ejercicios (global)
+ */
+app.get('/', async (req, res) => {
+    console.log('=== GET /exercises ===');
+    
+    try {
+        const exercises = await getAllExercises();
+        
+        res.status(200).json({
+            success: true,
+            data: exercises
+        });
+        
+    } catch (error) {
+        console.error('Error en GET /exercises:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Error al obtener ejercicios'
+        });
+    }
+});
+
+/**
+ * 🆕 GET /:exerciseId
+ * Obtener un ejercicio por ID (global)
+ */
+app.get('/:exerciseId', async (req, res) => {
+    console.log('=== GET /exercises/:exerciseId ===');
+    console.log('Params:', req.params);
+    
+    try {
+        const exercise = await getExerciseById(req.params.exerciseId);
+        
+        res.status(200).json({
+            success: true,
+            data: exercise
+        });
+        
+    } catch (error) {
+        console.error('Error en GET /exercises/:exerciseId:', error);
+        res.status(404).json({
+            success: false,
+            message: error.message || 'Error al obtener ejercicio'
         });
     }
 });
@@ -58,35 +91,34 @@ app.post('/create', async (req, res) => {
  * Obtener todos los ejercicios de un gym
  */
 app.get('/gym/:gymId', async (req, res) => {
-
+    console.log('=== GET /exercises/gym/:gymId ===');
+    
     try {
-        const { gymId } = req.params;
-        const exercises = await getGymExercises(gymId);
+        const exercises = await getGymExercises(req.params.gymId);
         
         res.status(200).json({
             success: true,
-            data: exercises,
-            count: exercises.length
+            data: exercises
         });
         
     } catch (error) {
-        console.error('Error en GET /exercises/gym/:gymId:', error.message);
+        console.error('Error en GET /exercises/gym/:gymId:', error);
         res.status(500).json({
             success: false,
-            message: error.message || 'Error al obtener ejercicios'
+            message: error.message || 'Error al obtener ejercicios del gym'
         });
     }
 });
 
 /**
- * GET /:gymId/:exerciseId
- * Obtener detalles de un ejercicio específico
+ * GET /gym/:gymId/:exerciseId
+ * Obtener detalles de un ejercicio específico del gym
  */
-app.get('/:gymId/:exerciseId', async (req, res) => {
+app.get('/gym/:gymId/:exerciseId', async (req, res) => {
+    console.log('=== GET /exercises/gym/:gymId/:exerciseId ===');
     
     try {
-        const { gymId, exerciseId } = req.params;
-        const exercise = await getExerciseDetails(gymId, exerciseId);
+        const exercise = await getExerciseDetails(req.params.gymId, req.params.exerciseId);
         
         res.status(200).json({
             success: true,
@@ -94,7 +126,7 @@ app.get('/:gymId/:exerciseId', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error en GET /exercises/:gymId/:exerciseId:', error.message);
+        console.error('Error en GET /exercises/gym/:gymId/:exerciseId:', error);
         res.status(404).json({
             success: false,
             message: error.message || 'Error al obtener ejercicio'
@@ -103,24 +135,24 @@ app.get('/:gymId/:exerciseId', async (req, res) => {
 });
 
 /**
- * PUT /:gymId/:exerciseId
+ * PUT /gym/:gymId/:exerciseId
  * Actualizar ejercicio
  */
-app.put('/:gymId/:exerciseId', async (req, res) => {
+app.put('/gym/:gymId/:exerciseId', async (req, res) => {
+    console.log('=== PUT /exercises/gym/:gymId/:exerciseId ===');
     
     try {
-        const { gymId, exerciseId } = req.params;
-        const updatedExercise = await updateExercise(gymId, exerciseId, req.body);
+        const exercise = await updateExercise(req.params.gymId, req.params.exerciseId, req.body);
         
         res.status(200).json({
             success: true,
             message: 'Ejercicio actualizado exitosamente',
-            data: updatedExercise
+            data: exercise
         });
         
     } catch (error) {
-        console.error('Error en PUT /exercises/:gymId/:exerciseId:', error.message);
-        res.status(400).json({
+        console.error('Error en PUT /exercises:', error);
+        res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Error al actualizar ejercicio'
         });
@@ -128,24 +160,23 @@ app.put('/:gymId/:exerciseId', async (req, res) => {
 });
 
 /**
- * DELETE /:gymId/:exerciseId
+ * DELETE /gym/:gymId/:exerciseId
  * Archivar ejercicio (soft delete)
  */
-app.delete('/:gymId/:exerciseId', async (req, res) => {
+app.delete('/gym/:gymId/:exerciseId', async (req, res) => {
+    console.log('=== DELETE /exercises/gym/:gymId/:exerciseId ===');
     
     try {
-        const { gymId, exerciseId } = req.params;
-        const result = await archiveExercise(gymId, exerciseId);
+        await archiveExercise(req.params.gymId, req.params.exerciseId);
         
         res.status(200).json({
             success: true,
-            message: 'Ejercicio archivado exitosamente',
-            data: result
+            message: 'Ejercicio archivado exitosamente'
         });
         
     } catch (error) {
-        console.error('Error en DELETE /exercises/:gymId/:exerciseId:', error.message);
-        res.status(400).json({
+        console.error('Error en DELETE /exercises:', error);
+        res.status(error.statusCode || 400).json({
             success: false,
             message: error.message || 'Error al archivar ejercicio'
         });
