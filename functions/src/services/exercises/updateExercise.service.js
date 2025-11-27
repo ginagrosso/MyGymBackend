@@ -18,7 +18,7 @@ const updateExercise = async ( exerciseId, data) => {
             throw new Error(error.details[0].message);
         }
         
-        const updatedExercise = await exercisesRepository.updateExerciseInDB(gymId, exerciseId, value);
+        const updatedExercise = await exercisesRepository.updateExerciseInDB(exerciseId, value);
         
         console.log(`Ejercicio actualizado exitosamente`);
         return updatedExercise;

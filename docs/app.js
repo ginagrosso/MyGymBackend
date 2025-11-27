@@ -18,7 +18,7 @@ const ApiTester = {
 
     presets: {
         prod: 'https://us-central1-mygym-912d1.cloudfunctions.net',
-        local: 'http://localhost:5001/mygym-912d1/us-central1'
+        local: '127.0.0.1:5001/mygym-912d1/us-central1'
     },
 
     init() {
