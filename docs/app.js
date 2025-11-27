@@ -75,50 +75,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 showResponse('loginModalResponse', { success: false, data: { message: 'Error en login: ' + (err && err.message ? err.message : err) } });
                 return;
             }
-            // Protección extra: si result es undefined/null, forzar objeto de error
             if (!result || typeof result !== 'object') {
                 console.error('Login result inválido:', result);
                 showResponse('loginModalResponse', { success: false, data: { message: 'Respuesta inválida del servidor' } });
                 return;
             }
-            // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
-            let resultToShow = { ...result };
-            if (resultToShow && resultToShow.success && resultToShow.data) {
-                if (resultToShow.data.token) {
-                    localStorage.setItem('token', resultToShow.data.token);
-                    // Guardar userId si viene en la respuesta
-                    let userId = null;
-                    if (resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id) {
-                        userId = resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id;
-                    } else if (resultToShow.data.user && resultToShow.data.user.uid) {
-                        userId = resultToShow.data.user.uid;
-                    }
-                    if (userId) {
-                        localStorage.setItem('userId', userId);
-                    }
-                    document.dispatchEvent(new Event('tokenChanged'));
-                    const keys = Object.keys(resultToShow.data);
-                    if (keys.length === 1 && keys[0] === 'token') {
-                        resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
-                    } else {
-                        // Eliminar el token de la respuesta visual
-                        const { token, ...rest } = resultToShow.data;
-                        resultToShow = { ...resultToShow, data: rest };
-                    }
+            // Guardar token y userId si existen
+            if (result.success && result.data && result.data.token) {
+                localStorage.setItem('token', result.data.token);
+                let userId = null;
+                if (result.data.userId || result.data.uid || result.data.id) {
+                    userId = result.data.userId || result.data.uid || result.data.id;
+                } else if (result.data.user && result.data.user.uid) {
+                    userId = result.data.user.uid;
                 }
+                if (userId) {
+                    localStorage.setItem('userId', userId);
+                }
+                document.dispatchEvent(new Event('tokenChanged'));
                 // Mostrar el botón de logout inmediatamente
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) logoutBtn.style.display = '';
                 // Cerrar modal tras breve delay
                 setTimeout(() => { loginModal.style.display = 'none'; }, 800);
+                // Mostrar mensaje de éxito personalizado
+                showResponse('loginModalResponse', { success: true, data: { message: '¡Inicio de sesión exitoso!' } });
+                return;
             }
-            // Log para depuración
-            console.log('Login resultToShow:', resultToShow);
-            if (resultToShow && typeof resultToShow === 'object') {
-                showResponse('loginModalResponse', resultToShow);
-            } else {
-                showResponse('loginModalResponse', { success: false, data: { message: 'Error inesperado en login (resultToShow)' } });
+            // Si no hay token pero hay mensaje, mostrar el mensaje
+            if (result.success && result.message) {
+                showResponse('loginModalResponse', { success: true, data: { message: result.message } });
+                return;
             }
+            // Si no, mostrar la respuesta tal cual
+            showResponse('loginModalResponse', result);
         };
     }
 
