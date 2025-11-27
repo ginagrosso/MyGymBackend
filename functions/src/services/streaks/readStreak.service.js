@@ -1,12 +1,5 @@
-//readStreak.service.js:
-
-//Función getUserStreak(userId): (Lógica: Llama a streaksRepo.getAllUserCheckInsFromDB, luego replica la lógica de utils/racha.ts para calcular la racha).
-
-//Exportar { getUserStreak }.
-
 const streaksRepository = require('../../repositories/streaks.repository');
 
-// Función para calcular la racha actual
 const calculateStreak = (checkIns) => {
     if (!checkIns || Object.keys(checkIns).length === 0) {
         return { currentStreak: 0, longestStreak: 0 };
@@ -20,7 +13,6 @@ const calculateStreak = (checkIns) => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-    // Calcular currentStreak solo si el último check-in es hoy o ayer
     if (dates[0] === today || dates[0] === yesterday) {
         for (let i = 1; i < dates.length; i++) {
             const prevDate = new Date(dates[i - 1]);
@@ -36,7 +28,6 @@ const calculateStreak = (checkIns) => {
         currentStreak = dates.length === 1 ? 1 : 0;
     }
 
-    // Calcular longestStreak
     for (let i = 1; i < dates.length; i++) {
         const prevDate = new Date(dates[i - 1]);
         const currDate = new Date(dates[i]);
@@ -53,13 +44,11 @@ const calculateStreak = (checkIns) => {
 };
 
 const getUserStreak = async (userId) => {
-    console.log(`SERVICIO. Obteniendo racha del usuario ${userId}`);
-    
+ 
     try {
         const checkIns = await streaksRepository.getAllUserCheckInsFromDB(userId);
         const streakData = calculateStreak(checkIns);
         
-        console.log(`Racha calculada:`, streakData);
         return {
             ...streakData,
             totalCheckIns: Object.keys(checkIns).length,
@@ -67,7 +56,6 @@ const getUserStreak = async (userId) => {
         };
         
     } catch (error) {
-        console.log(`SERVICIO. Error obteniendo racha:`, error.message);
         throw error;
     }
 };

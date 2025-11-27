@@ -5,13 +5,11 @@ const assignRoutine = async (data) => {
     console.log(`SERVICIO. Asignando rutina`);
     
     try {
-        // Validar datos
         const { error, value } = assignRoutineSchema.validate(data);
         if (error) {
             throw new Error(error.details[0].message);
         }
         
-        // Verificar que la rutina existe y no está archivada
         const routine = await routinesRepository.getRoutineDetailsFromDB(value.routineId);
         if (!routine) {
             throw new Error('Rutina no encontrada');
@@ -21,7 +19,6 @@ const assignRoutine = async (data) => {
             throw new Error('No se puede asignar una rutina archivada');
         }
         
-        // Asignar rutina
         const assignment = await routinesRepository.assignRoutineToUserInDB(
             value.userId,
             value.routineId

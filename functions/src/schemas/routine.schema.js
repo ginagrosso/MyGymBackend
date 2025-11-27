@@ -31,7 +31,7 @@ const assignRoutineSchema = Joi.object({
 });
 
 const logProgressSchema = Joi.object({
-    date: Joi.string().optional(), // Formato: "YYYY-MM-DD"
+    date: Joi.string().optional(),
     exercises: Joi.array().items(
         Joi.object({
             exerciseId: Joi.string().required(),

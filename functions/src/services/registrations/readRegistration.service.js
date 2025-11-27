@@ -1,8 +1,5 @@
 const registrationsRepository = require('../../repositories/registrations.repository');
 
-/**
- * Obtener inscripciones activas del usuario
- */
 const getUserActiveRegistrations = async (userId) => {
     try {
         if (!userId) {
@@ -11,9 +8,6 @@ const getUserActiveRegistrations = async (userId) => {
         
         const registrations = await registrationsRepository.getUserActiveRegistrationsFromDB(userId);
         
-        // TODO: Enriquecer con datos de la clase
-        // Para cada inscripción, obtener detalles de la clase desde Dominio 2
-        
         return registrations;
         
     } catch (error) {
@@ -21,9 +15,6 @@ const getUserActiveRegistrations = async (userId) => {
     }
 };
 
-/**
- * Obtener detalles de una inscripción
- */
 const getRegistrationDetails = async (registrationId) => {
     try {
         if (!registrationId) {
@@ -43,9 +34,6 @@ const getRegistrationDetails = async (registrationId) => {
     }
 };
 
-/**
- * Obtener historial de inscripciones
- */
 const getUserRegistrationHistory = async (userId, limit = 50, offset = 0) => {
     try {
         if (!userId) {

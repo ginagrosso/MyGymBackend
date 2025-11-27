@@ -1,26 +1,7 @@
 const { db } = require('../utils/firebase');
+const { cleanObject } = require('../utils/helpers');
 
-// 🆕 Helper para remover undefined/null recursivamente
-const cleanObject = (obj) => {
-    if (Array.isArray(obj)) {
-        return obj.map(item => cleanObject(item));
-    }
-    
-    if (obj !== null && typeof obj === 'object') {
-        const cleaned = {};
-        for (const key in obj) {
-            const value = obj[key];
-            if (value !== undefined && value !== null) {
-                cleaned[key] = cleanObject(value);
-            }
-        }
-        return cleaned;
-    }
-    
-    return obj;
-};
 
-// Crear rutina en DB
 const createRoutineInDB = async (data) => {
     console.log('REPO. Creando rutina en DB');
     
@@ -43,7 +24,6 @@ const createRoutineInDB = async (data) => {
     return fullData;
 };
 
-// Actualizar rutina en DB
 const updateRoutineInDB = async (routineId, data) => {
     console.log(`REPO. Actualizando rutina ${routineId}`);
     
@@ -54,7 +34,6 @@ const updateRoutineInDB = async (routineId, data) => {
     console.log(`REPO. Rutina actualizada`);
 };
 
-// Obtener detalles de rutina
 const getRoutineDetailsFromDB = async (routineId) => {
     console.log(`REPO. Obteniendo rutina ${routineId}`);
     
@@ -68,7 +47,6 @@ const getRoutineDetailsFromDB = async (routineId) => {
     return routine;
 };
 
-// Obtener ID de rutina activa del usuario
 const getUserActiveRoutineIdFromDB = async (userId) => {
     console.log(`REPO. Obteniendo rutina activa del usuario ${userId}`);
     
@@ -78,7 +56,6 @@ const getUserActiveRoutineIdFromDB = async (userId) => {
     return routineId;
 };
 
-// Asignar rutina a usuario
 const assignRoutineToUserInDB = async (userId, routineId) => {
     console.log(`REPO. Asignando rutina ${routineId} al usuario ${userId}`);
     
@@ -90,16 +67,13 @@ const assignRoutineToUserInDB = async (userId, routineId) => {
     console.log(`REPO. Rutina asignada exitosamente`);
 };
 
-// 🆕 Guardar progreso
 const saveProgressInDB = async (progressData) => {
     console.log('REPO. Guardando progreso en DB');
     
     const { userId, routineId, date } = progressData;
     
-    // Estructura: progress/{userId}/{routineId}/{date}
     const progressRef = db.ref(`progress/${userId}/${routineId}/${date}`);
     
-    // Limpiar undefined
     const cleanedData = cleanObject(progressData);
     
     await progressRef.set(cleanedData);

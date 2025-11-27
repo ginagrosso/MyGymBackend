@@ -4,6 +4,7 @@ const cors = require('cors');
 const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
 const { createRegistration } = require('../src/services/registrations/createRegistration.service');
 const { getUserActiveRegistrations, getRegistrationDetails, getUserRegistrationHistory } = require('../src/services/registrations/readRegistration.service');
+const { getSuccessResponseObject, getErrorResponseObject } = require('../src/utils/responseHelpers');
 const { cancelRegistration } = require('../src/services/registrations/cancelRegistration.service');
 
 const app = express();
@@ -16,63 +17,33 @@ app.use(cors({
 
 app.use(express.json());
 
-/**
- * GET /
- * Ver mis inscripciones activas
- */
 app.get('/', validateFirebaseIdToken, async (req, res) => {
     try {
         const userId = req.query.userId;
         
         if (!userId) {
-            return res.status(400).json({
-                success: false,
-                message: 'userId es requerido'
-            });
+            const error = new Error('userId es requerido');
+            const errorResponse = getErrorResponseObject(error);
+            return res.status(errorResponse.statusCode || 400).json(errorResponse);
         }
-        
         const registrations = await getUserActiveRegistrations(userId);
-        
-        res.status(200).json({
-            success: true,
-            data: registrations,
-            count: registrations.length
-        });
-        
+        res.status(200).json(getSuccessResponseObject(registrations, undefined, { count: registrations.length }));
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Error al obtener inscripciones'
-        });
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 500).json(errorResponse);
     }
 });
 
-/**
- * POST /
- * Inscribirse a una clase
- */
 app.post('/', validateFirebaseIdToken, async (req, res) => {
     try {
         const registration = await createRegistration(req.body);
-        
-        res.status(201).json({
-            success: true,
-            message: 'Inscripción realizada exitosamente',
-            data: registration
-        });
-        
+        res.status(201).json(getSuccessResponseObject(registration, 'Inscripción realizada exitosamente'));
     } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message || 'Error al crear inscripción'
-        });
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 400).json(errorResponse);
     }
 });
 
-/**
- * GET /history
- * Historial de inscripciones pasadas
- */
 app.get('/history', validateFirebaseIdToken, async (req, res) => {
     try {
         const userId = req.query.userId;
@@ -80,78 +51,45 @@ app.get('/history', validateFirebaseIdToken, async (req, res) => {
         const offset = parseInt(req.query.offset) || 0;
         
         if (!userId) {
-            return res.status(400).json({
-                success: false,
-                message: 'userId es requerido'
-            });
+            const error = new Error('userId es requerido');
+            const errorResponse = getErrorResponseObject(error);
+            return res.status(errorResponse.statusCode || 400).json(errorResponse);
         }
-        
         const history = await getUserRegistrationHistory(userId, limit, offset);
-        
-        res.status(200).json({
-            success: true,
-            data: history,
+        res.status(200).json(getSuccessResponseObject(history, undefined, {
             count: history.length,
             pagination: {
                 limit,
                 offset,
                 hasMore: history.length === limit
             }
-        });
-        
+        }));
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Error al obtener historial'
-        });
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 500).json(errorResponse);
     }
 });
 
-
-/**
- * GET /:id
- * Detalle de inscripción
- */
 app.get('/:id', validateFirebaseIdToken, async (req, res) => {
     try {
         const { id } = req.params;
         const registration = await getRegistrationDetails(id);
-        
-        res.status(200).json({
-            success: true,
-            data: registration
-        });
-        
+        res.status(200).json(getSuccessResponseObject(registration));
     } catch (error) {
-        res.status(404).json({
-            success: false,
-            message: error.message || 'Inscripción no encontrada'
-        });
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 404).json(errorResponse);
     }
 });
 
-/**
- * DELETE /:id
- * Cancelar inscripción
- */
 app.delete('/:id', validateFirebaseIdToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await cancelRegistration(id);
-        
-        res.status(200).json({
-            success: true,
-            message: 'Inscripción cancelada exitosamente',
-            data: result
-        });
-        
+        res.status(200).json(getSuccessResponseObject(result, 'Inscripción cancelada exitosamente'));
     } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message || 'Error al cancelar inscripción'
-        });
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 400).json(errorResponse);
     }
 });
 
-// Exportar como Cloud Function
 module.exports = functions.https.onRequest(app);

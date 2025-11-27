@@ -1,8 +1,5 @@
 const Joi = require('joi');
 
-/**
- * Schema para crear inscripción
- */
 const createRegistrationSchema = Joi.object({
     userId: Joi.string().required().messages({
         'any.required': 'El userId es obligatorio',
