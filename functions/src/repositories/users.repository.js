@@ -1,6 +1,5 @@
 
 const admin = require("firebase-admin");
-const { firebaseAdmin } = require('../utils/firebase');
 
 
 const db = admin.database();

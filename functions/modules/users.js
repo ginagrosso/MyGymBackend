@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const userService = require('../src/services/users.service');
-const authService = require('../src/services/auth.service');
 const functions = require('firebase-functions');
 const loggingMiddleware = require('../src/middlewares/logging.middleware');
 const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
@@ -11,8 +10,8 @@ const { httpStatusCodes } = require('../src/utils/httpStatusCodes');
 const app = express();
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://your-production-domain.com'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: ['https://ginagrosso.github.io'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 

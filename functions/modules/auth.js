@@ -10,7 +10,7 @@ const { httpStatusCodes } = require('../src/utils/httpStatusCodes');
 const app = express();
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://your-production-domain.com'],
+    origin: ['https://ginagrosso.github.io'],
     methods: ['POST'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));

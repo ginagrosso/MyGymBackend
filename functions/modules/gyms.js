@@ -8,13 +8,12 @@ const { getSuccessResponseObject, getErrorResponseObject } = require('../src/uti
 const { httpStatusCodes } = require('../src/utils/httpStatusCodes');
 const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
 const userService = require('../src/services/users.service');
-const { generateTemporaryPassword } = require('../src/utils/passwordGenerator');
 
 const app = express();
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'https://your-production-domain.com'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: ['https://ginagrosso.github.io'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
