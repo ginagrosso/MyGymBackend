@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const express = require('express');
 const cors = require('cors');
 const { createRoutine } = require('../src/services/routines/createRoutine.service');
-const { getRoutineDetails, getUserActiveRoutine } = require('../src/services/routines/readRoutine.service');
+const { getRoutineDetails, getUserActiveRoutine, getAllRoutines } = require('../src/services/routines/readRoutine.service');
 const { updateRoutine, archiveRoutine } = require('../src/services/routines/updateRoutine.service');
 const { assignRoutine } = require('../src/services/routines/assignRoutine.service');
 const { logProgress } = require('../src/services/routines/logProgress.service');
@@ -30,6 +30,18 @@ app.post('/create', validateFirebaseIdToken, async (req, res) => {
         console.error('Error en POST /routines:', error.message);
         const errorResponse = getErrorResponseObject(error);
         res.status(errorResponse.statusCode || 400).json(errorResponse);
+    }
+});
+
+app.get('/', validateFirebaseIdToken, async (req, res) => {
+    console.log('=== GET /routines ===');
+    try {
+        const routines = await getAllRoutines();
+        res.status(200).json(getSuccessResponseObject(routines, 'Rutinas obtenidas exitosamente'));
+    } catch (error) {
+        console.error('Error en GET /routines:', error.message);
+        const errorResponse = getErrorResponseObject(error);
+        res.status(errorResponse.statusCode || 500).json(errorResponse);
     }
 });
 

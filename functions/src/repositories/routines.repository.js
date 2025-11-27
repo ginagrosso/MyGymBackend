@@ -1,5 +1,5 @@
 const { db } = require('../utils/firebase');
-const { cleanObject } = require('../utils/removeUndefined');
+const cleanObject = require('../utils/removeUndefined');
 
 
 const createRoutineInDB = async (data) => {
@@ -75,11 +75,23 @@ const saveProgressInDB = async (progressData) => {
     };
 };
 
+const getAllRoutinesFromDB = async () => {
+    const snapshot = await db.ref('routines').once('value');
+    const routines = snapshot.val();
+    
+    if (!routines) return [];
+    
+    return Object.entries(routines)
+        .map(([key, value]) => ({ ...value, id: key }))
+        .filter(r => !r.isArchived);
+};
+
 module.exports = {
     createRoutineInDB,
     updateRoutineInDB,
     getRoutineDetailsFromDB,
     getUserActiveRoutineIdFromDB,
     assignRoutineToUserInDB,
-    saveProgressInDB
+    saveProgressInDB,
+    getAllRoutinesFromDB
 };

@@ -49,7 +49,12 @@ const getUserActiveRoutine = async (userId) => {
     return await getRoutineDetails(activeRoutineId);
 };
 
+const getAllRoutines = async () => {
+    return await routinesRepository.getAllRoutinesFromDB();
+};
+
 module.exports = {
     getRoutineDetails,
-    getUserActiveRoutine
+    getUserActiveRoutine,
+    getAllRoutines
 };
