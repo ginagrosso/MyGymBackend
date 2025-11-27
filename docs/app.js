@@ -398,7 +398,7 @@ const SmartSelectors = {
         
         if (result.success && result.data?.data) {
             this.cache.exercises = this.normalizeData(result.data.data);
-            this.populateSelect(select, this.cache.exercises, 'id', 'nombre', 'categoria');
+            this.populateSelect(select, this.cache.exercises, 'exerciseId', 'nombre', 'categoria');
             Toast.success(`${this.cache.exercises.length} ejercicios cargados`);
         } else {
             select.innerHTML = '<option value="">Error al cargar</option>';
@@ -422,17 +422,35 @@ const SmartSelectors = {
         }
     },
 
+    async loadRoutines(selectId) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Cargando...</option>';
+        
+        const result = await ApiTester.request('GET', '/routines/');
+        
+        if (result.success && result.data?.data) {
+            const routines = this.normalizeData(result.data.data);
+            this.populateSelect(select, routines, 'id', 'nombre');
+            Toast.success(`${routines.length} rutinas cargadas`);
+        } else {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar rutinas');
+        }
+    },
+
     populateSelect(select, items, valueKey, labelKey, subtitleKey = null) {
         select.innerHTML = '<option value="">Seleccionar...</option>';
         items.forEach(item => {
-            const value = item[valueKey] || item.id || item._id || item.uid;
+            const value = item[valueKey] || item.id || item.exerciseId || item._id || item.uid;
             const label = item[labelKey] || item.name || item.nombre || value;
             const subtitle = subtitleKey && item[subtitleKey] ? ` (${item[subtitleKey]})` : '';
             
-            const option = document.createElement('option');
-            option.value = value;
-            option.textContent = `${label}${subtitle}`;
-            select.appendChild(option);
+            if (value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = `${label}${subtitle}`;
+                select.appendChild(option);
+            }
         });
     }
 };
@@ -1219,14 +1237,98 @@ const ExercisesModule = {
 // ============================================
 
 const RoutinesModule = {
+    exercisesCache: [],
+
+    async ensureExercisesLoaded() {
+        if (this.exercisesCache && this.exercisesCache.length > 0) return;
+        
+        const result = await ApiTester.request('GET', '/exercises/');
+        if (result.success && result.data?.data) {
+            this.exercisesCache = SmartSelectors.normalizeData(result.data.data);
+        }
+    },
+
+    async addExerciseRow() {
+        await this.ensureExercisesLoaded();
+        const container = document.getElementById('exercisesContainer');
+        
+        const row = document.createElement('div');
+        row.className = 'exercise-row';
+        row.style.cssText = 'background: var(--bg-tertiary); padding: 15px; margin-bottom: 10px; border-radius: var(--radius-md); border: 1px solid var(--border); position: relative; animation: fadeIn 0.3s ease;';
+        
+        let options = '<option value="">Seleccionar Ejercicio...</option>';
+        this.exercisesCache.forEach(ex => {
+            options += `<option value="${ex.exerciseId || ex.id}">${ex.nombre} (${ex.categoria})</option>`;
+        });
+
+        row.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            <div class="form-group">
+                <label>Ejercicio</label>
+                <select class="exercise-select" required style="width: 100%; margin-bottom: 10px;">
+                    ${options}
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sets</label>
+                    <input type="number" class="exercise-sets" placeholder="3" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Reps</label>
+                    <input type="number" class="exercise-reps" placeholder="12" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" class="exercise-weight" placeholder="0" min="0">
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Notas</label>
+                <input type="text" class="exercise-notes" placeholder="Notas opcionales">
+            </div>
+        `;
+        
+        container.appendChild(row);
+    },
+
     async createRoutine(e) {
         e.preventDefault();
         
-        let ejercicios;
-        try {
-            ejercicios = JSON.parse(document.getElementById('routineEjercicios').value);
-        } catch (err) {
-            Toast.error('JSON de ejercicios inválido');
+        const rows = document.querySelectorAll('.exercise-row');
+        if (rows.length === 0) {
+            Toast.error('Agrega al menos un ejercicio');
+            return;
+        }
+
+        const ejercicios = [];
+        let hasError = false;
+
+        rows.forEach(row => {
+            const exerciseId = row.querySelector('.exercise-select').value;
+            const sets = Number(row.querySelector('.exercise-sets').value);
+            const reps = Number(row.querySelector('.exercise-reps').value);
+            const weight = Number(row.querySelector('.exercise-weight').value);
+            const notes = row.querySelector('.exercise-notes').value;
+
+            if (!exerciseId) {
+                hasError = true;
+                return;
+            }
+
+            const exercise = {
+                exerciseId,
+                sets,
+                reps,
+                weight
+            };
+            if (notes) exercise.notes = notes;
+            
+            ejercicios.push(exercise);
+        });
+
+        if (hasError) {
+            Toast.error('Selecciona un ejercicio en todas las filas');
             return;
         }
         
@@ -1243,6 +1345,7 @@ const RoutinesModule = {
         if (result.success) {
             Toast.success('Rutina creada');
             e.target.reset();
+            document.getElementById('exercisesContainer').innerHTML = '';
         } else {
             Toast.error(result.data?.message || 'Error al crear');
         }

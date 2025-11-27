@@ -1107,11 +1107,11 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Ejercicios (JSON Array) *</label>
-                                <textarea id="routineEjercicios" rows="4" required placeholder='[
-  {"exerciseId": "abc123", "sets": 3, "reps": 12, "weight": 20, "notes": "Con barra"}
-]'></textarea>
-                                <small class="form-hint">Formato: [{"exerciseId": "...", "sets": N, "reps": N, "weight": N?, "notes": "?"}]</small>
+                                <label>Ejercicios *</label>
+                                <div id="exercisesContainer"></div>
+                                <button type="button" class="btn btn-sm btn-success" onclick="RoutinesModule.addExerciseRow()" style="margin-top: 10px;">
+                                    + Agregar Ejercicio
+                                </button>
                             </div>
                             <button type="submit" class="btn btn-primary">Crear Rutina</button>
                         </form>
@@ -1126,8 +1126,13 @@
                     </div>
                     <div class="endpoint-body">
                         <div class="form-group">
-                            <label>Rutina ID</label>
-                            <input type="text" id="getRoutineId" placeholder="ID de la rutina">
+                            <label>Rutina</label>
+                            <div class="input-with-btn">
+                                <select id="getRoutineId">
+                                    <option value="">Cargar rutinas...</option>
+                                </select>
+                                <button class="btn btn-sm btn-info" onclick="SmartSelectors.loadRoutines('getRoutineId')">↻</button>
+                            </div>
                         </div>
                         <button class="btn btn-primary" onclick="RoutinesModule.getRoutineById()">Obtener Rutina</button>
                     </div>
@@ -1142,8 +1147,13 @@
                     <div class="endpoint-body">
                         <form id="updateRoutineForm" onsubmit="RoutinesModule.updateRoutine(event)">
                             <div class="form-group">
-                                <label>Rutina ID</label>
-                                <input type="text" id="updateRoutineId" placeholder="ID de la rutina" required>
+                                <label>Rutina</label>
+                                <div class="input-with-btn">
+                                    <select id="updateRoutineId" required>
+                                        <option value="">Cargar rutinas...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadRoutines('updateRoutineId')">↻</button>
+                                </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
@@ -1172,8 +1182,13 @@
                     </div>
                     <div class="endpoint-body">
                         <div class="form-group">
-                            <label>Rutina ID</label>
-                            <input type="text" id="deleteRoutineId" placeholder="ID de la rutina">
+                            <label>Rutina</label>
+                            <div class="input-with-btn">
+                                <select id="deleteRoutineId">
+                                    <option value="">Cargar rutinas...</option>
+                                </select>
+                                <button class="btn btn-sm btn-info" onclick="SmartSelectors.loadRoutines('deleteRoutineId')">↻</button>
+                            </div>
                         </div>
                         <button class="btn btn-danger" onclick="RoutinesModule.deleteRoutine()">Archivar Rutina</button>
                     </div>
@@ -1187,14 +1202,30 @@
                     </div>
                     <div class="endpoint-body">
                         <form id="assignRoutineForm" onsubmit="RoutinesModule.assignRoutine(event)">
+                            <div class="form-group">
+                                <label>Gimnasio (para filtrar usuarios)</label>
+                                <div class="input-with-btn">
+                                    <select id="assignGymSelect" onchange="SmartSelectors.loadClients('assignGymSelect', 'assignUserId')">
+                                        <option value="">Selecciona un gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadGyms('assignGymSelect')">↻</button>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>User ID *</label>
-                                    <input type="text" id="assignUserId" placeholder="ID del usuario" required>
+                                    <label>Usuario *</label>
+                                    <select id="assignUserId" required>
+                                        <option value="">Selecciona un gimnasio primero...</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
-                                    <label>Rutina ID *</label>
-                                    <input type="text" id="assignRoutineId" placeholder="ID de la rutina" required>
+                                    <label>Rutina *</label>
+                                    <div class="input-with-btn">
+                                        <select id="assignRoutineId" required>
+                                            <option value="">Cargar rutinas...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadRoutines('assignRoutineId')">↻</button>
+                                    </div>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-primary">Asignar Rutina</button>
@@ -1209,11 +1240,20 @@
                         <span class="badge auth-required">Auth</span>
                     </div>
                     <div class="endpoint-body">
-                        <div class="form-row">
-                            <div class="form-group flex-grow">
-                                <label>User ID (vacío = usuario actual)</label>
-                                <input type="text" id="getUserRoutineUserId" placeholder="ID del usuario">
+                        <div class="form-group">
+                            <label>Gimnasio (para filtrar usuarios)</label>
+                            <div class="input-with-btn">
+                                <select id="getUserRoutineGymSelect" onchange="SmartSelectors.loadClients('getUserRoutineGymSelect', 'getUserRoutineUserId')">
+                                    <option value="">Selecciona un gimnasio...</option>
+                                </select>
+                                <button class="btn btn-sm btn-info" onclick="SmartSelectors.loadGyms('getUserRoutineGymSelect')">↻</button>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Usuario (opcional, si vacío usa actual)</label>
+                            <select id="getUserRoutineUserId">
+                                <option value="">Selecciona un gimnasio primero...</option>
+                            </select>
                         </div>
                         <button class="btn btn-primary" onclick="RoutinesModule.getUserRoutine()">Obtener Rutina del Usuario</button>
                     </div>
@@ -1227,10 +1267,21 @@
                     </div>
                     <div class="endpoint-body">
                         <form id="logProgressForm" onsubmit="RoutinesModule.logProgress(event)">
+                            <div class="form-group">
+                                <label>Gimnasio (para filtrar usuarios)</label>
+                                <div class="input-with-btn">
+                                    <select id="progressGymSelect" onchange="SmartSelectors.loadClients('progressGymSelect', 'progressUserId')">
+                                        <option value="">Selecciona un gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadGyms('progressGymSelect')">↻</button>
+                                </div>
+                            </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>User ID *</label>
-                                    <input type="text" id="progressUserId" placeholder="ID del usuario" required>
+                                    <label>Usuario *</label>
+                                    <select id="progressUserId" required>
+                                        <option value="">Selecciona un gimnasio primero...</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label>Fecha</label>
