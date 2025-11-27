@@ -356,7 +356,7 @@ if (loginSectionForm) {
             email: document.getElementById('loginSectionEmail').value,
             password: document.getElementById('loginSectionPassword').value
         };
-        const result = await makeRequest('/auth/login', 'POST', body);
+        const result = await makeRequest('/auth/auth/login', 'POST', body);
         showResponse('loginResponse', result);
         // Guardar token si login exitoso
         if (result.success && result.data && result.data.token) {
