@@ -36,6 +36,23 @@
 </head>
 <body>
     <div class="container">
+        <!-- Debug LocalStorage -->
+        <div id="localStorageDebug" style="background:#f8f9fa;border:1px solid #e9ecef;padding:10px 20px;margin-bottom:15px;border-radius:8px;font-size:0.95em;max-width:600px;">
+            <strong>Debug LocalStorage:</strong>
+            <div><b>Token:</b> <span id="debugToken"></span></div>
+            <div><b>UserId:</b> <span id="debugUserId"></span></div>
+        </div>
+            // Mostrar localStorage en pantalla (debug)
+            function updateLocalStorageDebug() {
+                const debugToken = document.getElementById('debugToken');
+                const debugUserId = document.getElementById('debugUserId');
+                if (debugToken) debugToken.textContent = localStorage.getItem('token') || '(vacío)';
+                if (debugUserId) debugUserId.textContent = localStorage.getItem('userId') || '(vacío)';
+            }
+            updateLocalStorageDebug();
+            window.addEventListener('storage', updateLocalStorageDebug);
+            // También actualizar tras login/logout
+            document.addEventListener('tokenChanged', updateLocalStorageDebug);
         <header>
             <h1>🏋️ MyGym Backend Tester</h1>
             <div class="config">

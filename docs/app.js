@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (storedUserId) {
             document.querySelectorAll('input[id*="userId"]').forEach(input => {
                 input.value = storedUserId;
+                input.disabled = true;
             });
         }
     // LOGOUT
@@ -12,19 +13,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let openLoginBtn = document.getElementById('openLoginModal');
     let openRegisterBtn = document.getElementById('openRegisterModal');
     if (logoutBtn) {
-        if (localStorage.getItem('token')) {
-            logoutBtn.style.display = '';
-            // Ocultar botones de login y registro
-            if (openLoginBtn) openLoginBtn.style.display = 'none';
-            if (openRegisterBtn) openRegisterBtn.style.display = 'none';
-        } else {
-            logoutBtn.style.display = 'none';
-            // Mostrar botones de login y registro
-            if (openLoginBtn) openLoginBtn.style.display = '';
-            if (openRegisterBtn) openRegisterBtn.style.display = '';
-        }
+        const isLogged = !!localStorage.getItem('token');
+        logoutBtn.style.display = isLogged ? '' : 'none';
+        // Ocultar/mostrar botones de login y registro en landing-actions
+        document.querySelectorAll('.landing-actions #openLoginModal, .landing-actions #openRegisterModal').forEach(btn => {
+            btn.style.display = isLogged ? 'none' : '';
+        });
+        // También en la cabecera si existieran
+        if (openLoginBtn) openLoginBtn.style.display = isLogged ? 'none' : '';
+        if (openRegisterBtn) openRegisterBtn.style.display = isLogged ? 'none' : '';
+
         logoutBtn.onclick = () => {
             localStorage.removeItem('token');
+            localStorage.removeItem('userId');
+            document.dispatchEvent(new Event('tokenChanged'));
             location.reload();
         };
     }
@@ -63,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof resultToShow.data === 'string') {
                     // Guardar el token pero no mostrarlo
                     localStorage.setItem('token', resultToShow.data);
+                    document.dispatchEvent(new Event('tokenChanged'));
                     // No hay userId en este caso
                     resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
                 } else if (resultToShow.data.token) {
@@ -71,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id) {
                         localStorage.setItem('userId', resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id);
                     }
+                    document.dispatchEvent(new Event('tokenChanged'));
                     const keys = Object.keys(resultToShow.data);
                     if (keys.length === 1 && keys[0] === 'token') {
                         resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
@@ -383,6 +387,7 @@ if (loginSectionForm) {
             if (result.data.userId || result.data.uid || result.data.id) {
                 localStorage.setItem('userId', result.data.userId || result.data.uid || result.data.id);
             }
+            document.dispatchEvent(new Event('tokenChanged'));
         }
     };
 }
