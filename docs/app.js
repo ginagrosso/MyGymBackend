@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
-            const result = await makeRequest('/auth/auth/login', 'POST', { email, password });
+            const result = await makeRequest('/auth/login', 'POST', { email, password });
             showResponse('loginModalResponse', result);
             if (result.success && result.data && result.data.token) {
                 localStorage.setItem('token', result.data.token);
