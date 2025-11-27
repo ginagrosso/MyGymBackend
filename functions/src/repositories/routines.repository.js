@@ -1,9 +1,8 @@
 const { db } = require('../utils/firebase');
-const { cleanObject } = require('../utils/removeUndefined');
+const cleanObject  = require('../utils/removeUndefined');
 
 
 const createRoutineInDB = async (data) => {
-    console.log('REPO. Creando rutina en DB');
     
     const newRoutineRef = db.ref('routines').push();
     const routineId = newRoutineRef.key;

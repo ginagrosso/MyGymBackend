@@ -1,7 +1,6 @@
 const { db } = require('../utils/firebase');
 
 const createExerciseInDB = async (data) => {
-    console.log(`REPO. Creando ejercicio: ${data.nombre}`);
     
     const newExerciseRef = db.ref('exercises').push();
     const exerciseId = newExerciseRef.key;
@@ -19,9 +18,21 @@ const createExerciseInDB = async (data) => {
     return fullData;
 };
 
+const getExerciseDetailsFromDB = async (exerciseId) => {
+
+    const snapshot = await db.ref(`exercises/${exerciseId}`).once('value');
+    const exercise = snapshot.val();
+    if (!exercise) {
+        return null;
+    }
+    return {
+        exerciseId,
+        ...exercise
+    };
+};
+
 const getExerciseByIdFromDB = async (exerciseId) => {
-    console.log(`REPO. Buscando ejercicio ${exerciseId}`);
-    
+
     const snapshot = await db.ref(`exercises/${exerciseId}`).once('value');
     const exercise = snapshot.val();
     
@@ -36,7 +47,6 @@ const getExerciseByIdFromDB = async (exerciseId) => {
 };
 
 const getExercisesByIdsFromDB = async (exerciseIds) => {
-    console.log(`REPO. Buscando ${exerciseIds.length} ejercicios`);
     
     const promises = exerciseIds.map(id => getExerciseByIdFromDB(id));
     const exercises = await Promise.all(promises);
@@ -45,7 +55,7 @@ const getExercisesByIdsFromDB = async (exerciseIds) => {
 };
 
 const getAllExercisesFromDB = async () => {
-    console.log('REPO. Obteniendo todos los ejercicios');
+
     
     const snapshot = await db.ref('exercises').once('value');
     const exercises = snapshot.val();
@@ -60,22 +70,20 @@ const getAllExercisesFromDB = async () => {
     }));
 };
 
-const updateExerciseInDB = async (gymId, exerciseId, data) => {
-    console.log(`REPO. Actualizando ejercicio ${exerciseId}`);
+const updateExerciseInDB = async (exerciseId, data) => {;
     
     const updates = {
         ...data,
         updatedAt: Date.now()
     };
     
-    await db.ref(`customExercises/${gymId}/${exerciseId}`).update(updates);
+    await db.ref(`exercises/${exerciseId}`).update(updates);
     console.log(`Ejercicio actualizado`);
     
-    return await getExerciseDetailsFromDB(gymId, exerciseId);
+    return await getExerciseDetailsFromDB( exerciseId);
 };
 
-const archiveExerciseInDB = async (gymId, exerciseId) => {
-    console.log(`REPO. Archivando ejercicio ${exerciseId}`);
+const archiveExerciseInDB = async (exerciseId) => {
     
     await db.ref(`customExercises/${gymId}/${exerciseId}`).update({
         isArchived: true,
@@ -92,5 +100,6 @@ module.exports = {
     archiveExerciseInDB,
     getExerciseByIdFromDB,
     getExercisesByIdsFromDB,
-    getAllExercisesFromDB
+    getAllExercisesFromDB,
+    getExerciseDetailsFromDB
 };

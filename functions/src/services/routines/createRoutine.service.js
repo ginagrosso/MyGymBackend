@@ -4,7 +4,6 @@ const exercisesRepository = require('../../repositories/exercises.repository');
 const { DataValidationError, ResourceNotFoundError } = require('../../utils/httpStatusCodes');
 
 const createRoutine = async (data) => {
-    console.log('SERVICIO. Iniciando creación de rutina');
     
     const { error, value } = createRoutineSchema.validate(data);
     if (error) {
