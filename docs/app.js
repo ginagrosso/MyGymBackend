@@ -438,6 +438,42 @@ const SmartSelectors = {
         }
     },
 
+    async loadRegistrations(selectId) {
+        const select = document.getElementById(selectId);
+        const userId = ApiTester.config.userId;
+        
+        if (!userId) {
+            Toast.error('Inicia sesión para ver tus inscripciones');
+            return;
+        }
+
+        select.innerHTML = '<option value="">Cargando...</option>';
+        
+        // Usamos el endpoint de historial para obtener todas las inscripciones
+        const result = await ApiTester.request('GET', `/registrations/history?userId=${userId}`);
+        
+        if (result.success && result.data?.data) {
+            const registrations = this.normalizeData(result.data.data);
+            
+            select.innerHTML = '<option value="">Seleccionar...</option>';
+            registrations.forEach(reg => {
+                // Formatear fecha
+                const date = new Date(reg.registrationDate || reg.createdAt || Date.now()).toLocaleDateString();
+                const className = reg.className || reg.classId || 'Clase';
+                // const status = reg.isActive ? 'Activa' : 'Inactiva'; // Texto eliminado a petición
+                const option = document.createElement('option');
+                option.value = reg.id || reg.registrationId;
+                option.textContent = `${className} (${date})`;
+                select.appendChild(option);
+            });
+            
+            Toast.success(`${registrations.length} inscripciones cargadas`);
+        } else {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar inscripciones');
+        }
+    },
+
     populateSelect(select, items, valueKey, labelKey, subtitleKey = null) {
         select.innerHTML = '<option value="">Seleccionar...</option>';
         items.forEach(item => {
@@ -470,10 +506,13 @@ const AuthModule = {
         
         if (result.success && result.data?.data?.token) {
             const data = result.data.data;
+            // Backend devuelve: { token, user: { uid, email, userType, ... } }
+            const userObj = data.user || data;
+
             ApiTester.setAuth(data.token, {
-                userId: data.userId || data.uid,
-                email: data.email || email,
-                userType: data.userType || data.role
+                userId: userObj.uid || userObj.id || userObj.userId,
+                email: userObj.email || email,
+                userType: userObj.userType || userObj.role
             });
         } else {
             Toast.error(result.data?.message || 'Error en login');
@@ -1570,9 +1609,24 @@ const StreaksModule = {
     async checkIn(e) {
         e.preventDefault();
         
-        const body = {
-            userId: document.getElementById('checkInUserId').value
-        };
+        const body = {};
+        
+        // Usa el usuario logueado actual
+        let userId = ApiTester.config.userId;
+        
+        // Si no hay userId en config, intentar recuperar de localStorage por si acaso
+        if (!userId) {
+             userId = localStorage.getItem('mygym_userId');
+             // Si lo recuperamos, actualizar config
+             if (userId) ApiTester.config.userId = userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Debes iniciar sesión primero (No User ID found)');
+            return;
+        }
+        
+        body.userId = userId;
         
         const gymId = document.getElementById('checkInGymId').value;
         const classId = document.getElementById('checkInClassId').value;
@@ -1593,14 +1647,11 @@ const StreaksModule = {
     },
 
     async getHistory() {
-        let userId = document.getElementById('streakHistoryUserId').value;
+        // Se usa directamente el usuario logueado
+        let userId = ApiTester.config.userId;
         
         if (!userId) {
-            userId = ApiTester.config.userId;
-        }
-        
-        if (!userId) {
-            Toast.error('Ingresa un User ID o inicia sesión');
+            Toast.error('Debes iniciar sesión primero');
             return;
         }
         
@@ -1614,14 +1665,11 @@ const StreaksModule = {
     },
 
     async getStreak() {
-        let userId = document.getElementById('getStreakUserId').value;
+        // Se usa directamente el usuario logueado
+        let userId = ApiTester.config.userId;
         
         if (!userId) {
-            userId = ApiTester.config.userId;
-        }
-        
-        if (!userId) {
-            Toast.error('Ingresa un User ID o inicia sesión');
+            Toast.error('Debes iniciar sesión primero');
             return;
         }
         
@@ -1641,14 +1689,11 @@ const StreaksModule = {
 
 const RegistrationsModule = {
     async getActive() {
-        let userId = document.getElementById('getRegistrationsUserId').value;
+        // Se usa el usuario logueado
+        let userId = ApiTester.config.userId;
         
         if (!userId) {
-            userId = ApiTester.config.userId;
-        }
-        
-        if (!userId) {
-            Toast.error('Ingresa un User ID o inicia sesión');
+            Toast.error('Debes iniciar sesión primero');
             return;
         }
         
@@ -1665,8 +1710,15 @@ const RegistrationsModule = {
     async create(e) {
         e.preventDefault();
         
+        const userId = ApiTester.config.userId;
+
+        if (!userId) {
+             Toast.error('Debes iniciar sesión primero');
+             return;
+        }
+
         const body = {
-            userId: document.getElementById('regUserId').value,
+            userId: userId,
             gymId: document.getElementById('regGymId').value,
             classId: document.getElementById('regClassId').value
         };
@@ -1682,14 +1734,11 @@ const RegistrationsModule = {
     },
 
     async getHistory() {
-        let userId = document.getElementById('regHistoryUserId').value;
+        // Se usa el usuario logueado
+        let userId = ApiTester.config.userId;
         
         if (!userId) {
-            userId = ApiTester.config.userId;
-        }
-        
-        if (!userId) {
-            Toast.error('Ingresa un User ID o inicia sesión');
+            Toast.error('Debes iniciar sesión primero');
             return;
         }
         

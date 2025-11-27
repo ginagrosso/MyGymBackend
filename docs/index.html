@@ -1319,10 +1319,6 @@
                         <form id="checkInForm" onsubmit="StreaksModule.checkIn(event)">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label>User ID *</label>
-                                    <input type="text" id="checkInUserId" placeholder="ID del usuario" required>
-                                </div>
-                                <div class="form-group">
                                     <label>Gym ID</label>
                                     <div class="input-with-btn">
                                         <select id="checkInGymId">
@@ -1331,8 +1327,6 @@
                                         <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('checkInGymId')">Cargar</button>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-row">
                                 <div class="form-group">
                                     <label>Class ID</label>
                                     <div class="input-with-btn">
@@ -1342,7 +1336,9 @@
                                         <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('checkInClassId')">Cargar</button>
                                     </div>
                                 </div>
-                                <div class="form-group">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group flex-grow">
                                     <label>Código</label>
                                     <input type="text" id="checkInCode" placeholder="Código QR/PIN">
                                 </div>
@@ -1359,11 +1355,8 @@
                         <span class="badge auth-required">Auth</span>
                     </div>
                     <div class="endpoint-body">
-                        <div class="form-group">
-                            <label>User ID</label>
-                            <input type="text" id="streakHistoryUserId" placeholder="ID del usuario">
-                        </div>
-                        <button class="btn btn-primary" onclick="StreaksModule.getHistory()">Ver Historial</button>
+                        <!-- Campo User ID eliminado, se usa el actual -->
+                        <button class="btn btn-primary" onclick="StreaksModule.getHistory()">Ver Historial (Usuario Actual)</button>
                     </div>
                 </div>
 
@@ -1374,11 +1367,8 @@
                         <span class="badge auth-required">Auth</span>
                     </div>
                     <div class="endpoint-body">
-                        <div class="form-group">
-                            <label>User ID</label>
-                            <input type="text" id="getStreakUserId" placeholder="ID del usuario">
-                        </div>
-                        <button class="btn btn-primary" onclick="StreaksModule.getStreak()">Obtener Racha</button>
+                        <!-- Campo User ID eliminado, se usa el actual -->
+                        <button class="btn btn-primary" onclick="StreaksModule.getStreak()">Obtener Racha (Usuario Actual)</button>
                     </div>
                 </div>
             </section>
@@ -1394,11 +1384,8 @@
                         <span class="badge auth-required">Auth</span>
                     </div>
                     <div class="endpoint-body">
-                        <div class="form-group">
-                            <label>User ID</label>
-                            <input type="text" id="getRegistrationsUserId" placeholder="ID del usuario">
-                        </div>
-                        <button class="btn btn-primary" onclick="RegistrationsModule.getActive()">Ver Inscripciones Activas</button>
+                        <!-- Campo User ID eliminado, se usa el actual -->
+                        <button class="btn btn-primary" onclick="RegistrationsModule.getActive()">Ver Inscripciones Activas (Usuario Actual)</button>
                     </div>
                 </div>
 
@@ -1411,10 +1398,6 @@
                     <div class="endpoint-body">
                         <form id="createRegistrationForm" onsubmit="RegistrationsModule.create(event)">
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label>User ID *</label>
-                                    <input type="text" id="regUserId" placeholder="ID del usuario" required>
-                                </div>
                                 <div class="form-group">
                                     <label>Gym ID *</label>
                                     <div class="input-with-btn">
@@ -1446,11 +1429,8 @@
                         <span class="badge auth-required">Auth</span>
                     </div>
                     <div class="endpoint-body">
-                        <div class="form-group">
-                            <label>User ID</label>
-                            <input type="text" id="regHistoryUserId" placeholder="ID del usuario">
-                        </div>
-                        <button class="btn btn-primary" onclick="RegistrationsModule.getHistory()">Ver Historial</button>
+                        <!-- Campo User ID eliminado, se usa el actual -->
+                        <button class="btn btn-primary" onclick="RegistrationsModule.getHistory()">Ver Historial (Usuario Actual)</button>
                     </div>
                 </div>
 
@@ -1462,8 +1442,13 @@
                     </div>
                     <div class="endpoint-body">
                         <div class="form-group">
-                            <label>Registration ID</label>
-                            <input type="text" id="getRegistrationId" placeholder="ID de la inscripción">
+                            <label>Registration</label>
+                            <div class="input-with-btn">
+                                <select id="getRegistrationId">
+                                    <option value="">Cargar historial...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadRegistrations('getRegistrationId')">↻</button>
+                            </div>
                         </div>
                         <button class="btn btn-primary" onclick="RegistrationsModule.getById()">Obtener Inscripción</button>
                     </div>
@@ -1477,8 +1462,13 @@
                     </div>
                     <div class="endpoint-body">
                         <div class="form-group">
-                            <label>Registration ID</label>
-                            <input type="text" id="cancelRegistrationId" placeholder="ID de la inscripción">
+                            <label>Registration</label>
+                            <div class="input-with-btn">
+                                <select id="cancelRegistrationId">
+                                    <option value="">Cargar historial...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm btn-info" onclick="SmartSelectors.loadRegistrations('cancelRegistrationId')">↻</button>
+                            </div>
                         </div>
                         <button class="btn btn-danger" onclick="RegistrationsModule.cancel()">Cancelar Inscripción</button>
                     </div>
