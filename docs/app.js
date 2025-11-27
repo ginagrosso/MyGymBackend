@@ -1,12 +1,27 @@
 // ==================== INICIALIZACIÓN UI ====================
 document.addEventListener('DOMContentLoaded', () => {
+        // Autocompletar campos userId si existe en localStorage
+        const storedUserId = localStorage.getItem('userId');
+        if (storedUserId) {
+            document.querySelectorAll('input[id*="userId"]').forEach(input => {
+                input.value = storedUserId;
+            });
+        }
     // LOGOUT
     const logoutBtn = document.getElementById('logoutBtn');
+    let openLoginBtn = document.getElementById('openLoginModal');
+    let openRegisterBtn = document.getElementById('openRegisterModal');
     if (logoutBtn) {
         if (localStorage.getItem('token')) {
             logoutBtn.style.display = '';
+            // Ocultar botones de login y registro
+            if (openLoginBtn) openLoginBtn.style.display = 'none';
+            if (openRegisterBtn) openRegisterBtn.style.display = 'none';
         } else {
             logoutBtn.style.display = 'none';
+            // Mostrar botones de login y registro
+            if (openLoginBtn) openLoginBtn.style.display = '';
+            if (openRegisterBtn) openRegisterBtn.style.display = '';
         }
         logoutBtn.onclick = () => {
             localStorage.removeItem('token');
@@ -17,14 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // MODALES Y LANDING
     // Modal Login
     const loginModal = document.getElementById('loginModal');
-    const openLoginBtn = document.getElementById('openLoginModal');
     const closeLoginBtn = document.getElementById('closeLoginModal');
     if (openLoginBtn && loginModal) openLoginBtn.onclick = () => { loginModal.style.display = 'flex'; };
     if (closeLoginBtn && loginModal) closeLoginBtn.onclick = () => { loginModal.style.display = 'none'; document.getElementById('loginModalResponse').textContent = ''; };
 
     // Modal Registro
     const registerModal = document.getElementById('registerModal');
-    const openRegisterBtn = document.getElementById('openRegisterModal');
     const closeRegisterBtn = document.getElementById('closeRegisterModal');
     if (openRegisterBtn && registerModal) openRegisterBtn.onclick = () => { registerModal.style.display = 'flex'; };
     if (closeRegisterBtn && registerModal) closeRegisterBtn.onclick = () => { registerModal.style.display = 'none'; document.getElementById('registerModalResponse').textContent = ''; };
@@ -50,9 +63,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (typeof resultToShow.data === 'string') {
                     // Guardar el token pero no mostrarlo
                     localStorage.setItem('token', resultToShow.data);
+                    // No hay userId en este caso
                     resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
                 } else if (resultToShow.data.token) {
                     localStorage.setItem('token', resultToShow.data.token);
+                    // Guardar userId si viene en la respuesta
+                    if (resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id) {
+                        localStorage.setItem('userId', resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id);
+                    }
                     const keys = Object.keys(resultToShow.data);
                     if (keys.length === 1 && keys[0] === 'token') {
                         resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
@@ -361,6 +379,10 @@ if (loginSectionForm) {
         // Guardar token si login exitoso
         if (result.success && result.data && result.data.token) {
             localStorage.setItem('token', result.data.token);
+            // Guardar userId si viene en la respuesta
+            if (result.data.userId || result.data.uid || result.data.id) {
+                localStorage.setItem('userId', result.data.userId || result.data.uid || result.data.id);
+            }
         }
     };
 }
