@@ -400,8 +400,14 @@ if (loginSectionForm) {
         if (result.success && result.data && result.data.token) {
             localStorage.setItem('token', result.data.token);
             // Guardar userId si viene en la respuesta
+            let userId = null;
             if (result.data.userId || result.data.uid || result.data.id) {
-                localStorage.setItem('userId', result.data.userId || result.data.uid || result.data.id);
+                userId = result.data.userId || result.data.uid || result.data.id;
+            } else if (result.data.user && result.data.user.uid) {
+                userId = result.data.user.uid;
+            }
+            if (userId) {
+                localStorage.setItem('userId', userId);
             }
             document.dispatchEvent(new Event('tokenChanged'));
         }
