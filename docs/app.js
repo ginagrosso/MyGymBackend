@@ -99,7 +99,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Cerrar modal tras breve delay
                 setTimeout(() => { loginModal.style.display = 'none'; }, 800);
             }
-            showResponse('loginModalResponse');
+            if (resultToShow) {
+                showResponse('loginModalResponse', resultToShow);
+            } else {
+                showResponse('loginModalResponse', { success: false, data: { message: 'Error inesperado en login' } });
+            }
         };
     }
 
@@ -358,13 +362,16 @@ async function makeRequest(endpoint, method = 'GET', body = null, token = null) 
 function showResponse(elementId, result) {
     const element = document.getElementById(elementId);
     element.className = 'response';
-    
+    if (!result || typeof result !== 'object') {
+        element.classList.add('error');
+        element.textContent = 'Error: respuesta inválida';
+        return;
+    }
     if (result.success) {
         element.classList.add('success');
     } else {
         element.classList.add('error');
     }
-    
     element.textContent = JSON.stringify(result.data, null, 2);
 }
 
