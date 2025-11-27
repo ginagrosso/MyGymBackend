@@ -4,18 +4,22 @@ const cors = require('cors');
 const { createExercise } = require('../src/services/exercises/createExercise.service');
 const { getGymExercises, getExerciseDetails, getExerciseById, getAllExercises } = require('../src/services/exercises/readExercise.service');
 const { updateExercise, archiveExercise } = require('../src/services/exercises/updateExercise.service');
+const { validateFirebaseIdToken } = require('../src/middlewares/auth.middleware');
 
 const app = express();
 
-// Middlewares
-app.use(cors({ origin: true }));
+app.use(cors({
+    origin:'https://ginagrosso.github.io',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json());
 
 /**
  * POST /create
  * Crear ejercicio personalizado
  */
-app.post('/create', async (req, res) => {
+app.post('/create', validateFirebaseIdToken, async (req, res) => {
     console.log('=== POST /exercises/create ===');
     console.log('Body recibido:', req.body);
     
@@ -41,7 +45,7 @@ app.post('/create', async (req, res) => {
  * 🆕 GET /
  * Obtener todos los ejercicios (global)
  */
-app.get('/', async (req, res) => {
+app.get('/', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /exercises ===');
     
     try {
@@ -65,7 +69,7 @@ app.get('/', async (req, res) => {
  * 🆕 GET /:exerciseId
  * Obtener un ejercicio por ID (global)
  */
-app.get('/:exerciseId', async (req, res) => {
+app.get('/:exerciseId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /exercises/:exerciseId ===');
     console.log('Params:', req.params);
     
@@ -90,7 +94,7 @@ app.get('/:exerciseId', async (req, res) => {
  * GET /gym/:gymId
  * Obtener todos los ejercicios de un gym
  */
-app.get('/gym/:gymId', async (req, res) => {
+app.get('/gym/:gymId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /exercises/gym/:gymId ===');
     
     try {
@@ -114,7 +118,7 @@ app.get('/gym/:gymId', async (req, res) => {
  * GET /gym/:gymId/:exerciseId
  * Obtener detalles de un ejercicio específico del gym
  */
-app.get('/gym/:gymId/:exerciseId', async (req, res) => {
+app.get('/gym/:gymId/:exerciseId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== GET /exercises/gym/:gymId/:exerciseId ===');
     
     try {
@@ -138,7 +142,7 @@ app.get('/gym/:gymId/:exerciseId', async (req, res) => {
  * PUT /gym/:gymId/:exerciseId
  * Actualizar ejercicio
  */
-app.put('/gym/:gymId/:exerciseId', async (req, res) => {
+app.put('/gym/:gymId/:exerciseId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== PUT /exercises/gym/:gymId/:exerciseId ===');
     
     try {
@@ -163,7 +167,7 @@ app.put('/gym/:gymId/:exerciseId', async (req, res) => {
  * DELETE /gym/:gymId/:exerciseId
  * Archivar ejercicio (soft delete)
  */
-app.delete('/gym/:gymId/:exerciseId', async (req, res) => {
+app.delete('/gym/:gymId/:exerciseId', validateFirebaseIdToken, async (req, res) => {
     console.log('=== DELETE /exercises/gym/:gymId/:exerciseId ===');
     
     try {
