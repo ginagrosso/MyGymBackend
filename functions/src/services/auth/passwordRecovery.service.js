@@ -1,4 +1,5 @@
 const axios = require('axios');
+const admin = require('firebase-admin');
 const { forgotPasswordSchema, resetPasswordSchema } = require('../../schemas/user.schema');
 const { DataValidationError } = require('../../utils/httpStatusCodes');
 
@@ -6,41 +7,21 @@ const { DataValidationError } = require('../../utils/httpStatusCodes');
 const forgotPassword = async (data) => {
     console.log(`SERVICIO. Solicitando recuperación de contraseña para: ${data.email}`);
     
-    // Validar datos
     const { error, value } = forgotPasswordSchema.validate(data);
     if (error) {
         throw new DataValidationError(error.details[0].message);
     }
     
-    const firebaseApiKey = process.env.MY_FIREBASE_API_KEY;
-    
     try {
-        // Llamar a la API de Firebase para enviar email de recuperación
-        await axios.post(
-            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`,
-            {
-                requestType: 'PASSWORD_RESET',
-                email: value.email
-            }
-        );
-        
+        await admin.auth().generatePasswordResetLink(value.email);
         return {
             message: 'Email de recuperación enviado. Revisá tu casilla de correo.'
         };
-        
     } catch (error) {
-        if (error.response && error.response.data) {
-            const errorCode = error.response.data.error.message;
-            
-            if (errorCode === 'EMAIL_NOT_FOUND') {
-                // Por seguridad, no revelamos si el email existe o no
-                return {
-                    message: 'Si el email existe, recibirás un correo de recuperación.'
-                };
-            }
-        }
-        
-        throw new DataValidationError('Error al enviar email de recuperación');
+        // Por seguridad, no revelamos si el email existe o no
+        return {
+            message: 'Si el email existe, recibirás un correo de recuperación.'
+        };
     }
 };
 

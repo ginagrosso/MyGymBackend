@@ -1,5 +1,5 @@
 const { db } = require('../utils/firebase');
-const { cleanObject } = require('../utils/helpers');
+const { cleanObject } = require('../utils/removeUndefined');
 
 
 const createRoutineInDB = async (data) => {

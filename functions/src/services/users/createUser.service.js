@@ -21,24 +21,6 @@ const registerClient = async (data) => {
             value.email,
             value.password
         );
-        
-        // Enviar email de verificación
-        const axios = require('axios');
-        const firebaseApiKey = process.env.MY_FIREBASE_API_KEY;
-        
-        try {
-            await axios.post(
-                `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`,
-                {
-                    requestType: 'VERIFY_EMAIL',
-                    email: value.email
-                }
-            );
-            console.log('Email de verificación enviado');
-        } catch (error) {
-            console.log('Advertencia: No se pudo enviar email de verificación');
-        }
-
 
         //datos para el perfil
         const datosPerfil = {
@@ -111,21 +93,14 @@ const registerClientManually = async (gymId, requestingUserId, data) => {
     
     const newClient = await registerClient(clientData);
     
-    // Enviar email automático de configuración de contraseña
-    const axios = require('axios');
-    const firebaseApiKey = process.env.MY_FIREBASE_API_KEY;
+    // Enviar email automático de configuración de contraseña usando Admin SDK
+    const admin = require('firebase-admin');
     
     try {
-        await axios.post(
-            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`,
-            {
-                requestType: 'PASSWORD_RESET',
-                email: data.email
-            }
-        );
+        await admin.auth().generatePasswordResetLink(data.email);
         console.log('Email de configuración enviado al cliente');
     } catch (error) {
-        console.log('Advertencia: No se pudo enviar email automático');
+        console.log('Advertencia: No se pudo enviar email automático:', error.message);
     }
     
     return {
