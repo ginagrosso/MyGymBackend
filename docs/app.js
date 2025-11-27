@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
-            const result = await makeRequest('/auth/auth/login', 'POST', { email, password });
+            const result = await makeRequest('/auth/login', 'POST', { email, password });
             // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
             let resultToShow = { ...result };
             if (resultToShow.success && resultToShow.data) {
@@ -200,12 +200,18 @@ async function cargarEjerciciosParaRutina() {
         result = await makeRequest('/exercises', 'GET');
     }
     // El endpoint devuelve { success: true, data: [ ... ] }
-    if (result.success && Array.isArray(result.data)) {
+    try {
+        result = await makeRequest('/exercises', 'GET', null, token);
+    } catch (e) {
+        ejerciciosDisponibles = [];
+        actualizarSelectsEjercicios();
+        return;
+    }
+    // El endpoint devuelve { success: true, data: [ ... ] }
+    if (result && result.success && Array.isArray(result.data)) {
         ejerciciosDisponibles = result.data;
-    } else if (result.success && result.data && Array.isArray(result.data.ejercicios)) {
+    } else if (result && result.success && result.data && Array.isArray(result.data.ejercicios)) {
         ejerciciosDisponibles = result.data.ejercicios;
-    } else if (result.success && result.data && Array.isArray(result.data.data)) {
-        ejerciciosDisponibles = result.data.data;
     } else {
         ejerciciosDisponibles = [];
     }
@@ -471,7 +477,8 @@ if (createExerciseForm) {
 
 async function getAllExercises() {
     showLoading('getAllExercisesResponse');
-    const result = await makeRequest('/exercises', 'GET');
+    let token = localStorage.getItem('token') || null;
+    const result = await makeRequest('/exercises', 'GET', null, token);
     showResponse('getAllExercisesResponse', result);
 }
 
