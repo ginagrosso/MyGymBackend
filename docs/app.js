@@ -44,12 +44,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
             const result = await makeRequest('/auth/login', 'POST', { email, password });
-            showResponse('loginModalResponse', result);
-            if (result.success && result.data && result.data.token) {
-                localStorage.setItem('token', result.data.token);
-                // Mensaje de éxito y cerrar modal tras breve delay
-                setTimeout(() => { loginModal.style.display = 'none'; }, 1200);
+            // Ocultar el token en la respuesta visual
+            let resultToShow = { ...result };
+            if (resultToShow.success && resultToShow.data && resultToShow.data.token) {
+                localStorage.setItem('token', resultToShow.data.token);
+                // Eliminar el token de la respuesta visual
+                const { token, ...rest } = resultToShow.data;
+                resultToShow = { ...resultToShow, data: rest };
+                // Mostrar el botón de logout inmediatamente
+                const logoutBtn = document.getElementById('logoutBtn');
+                if (logoutBtn) logoutBtn.style.display = '';
+                // Cerrar modal tras breve delay
+                setTimeout(() => { loginModal.style.display = 'none'; }, 800);
             }
+            showResponse('loginModalResponse', resultToShow);
         };
     }
 
