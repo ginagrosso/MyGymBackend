@@ -1,5 +1,15 @@
 // ==================== INICIALIZACIÓN UI ====================
 document.addEventListener('DOMContentLoaded', () => {
+            // Mostrar localStorage en pantalla (debug)
+            function updateLocalStorageDebug() {
+                const debugToken = document.getElementById('debugToken');
+                const debugUserId = document.getElementById('debugUserId');
+                if (debugToken) debugToken.textContent = localStorage.getItem('token') || '(vacío)';
+                if (debugUserId) debugUserId.textContent = localStorage.getItem('userId') || '(vacío)';
+            }
+            updateLocalStorageDebug();
+            window.addEventListener('storage', updateLocalStorageDebug);
+            document.addEventListener('tokenChanged', updateLocalStorageDebug);
         // Autocompletar campos userId si existe en localStorage
         const storedUserId = localStorage.getItem('userId');
         if (storedUserId) {
@@ -71,8 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else if (resultToShow.data.token) {
                     localStorage.setItem('token', resultToShow.data.token);
                     // Guardar userId si viene en la respuesta
+                    let userId = null;
                     if (resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id) {
-                        localStorage.setItem('userId', resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id);
+                        userId = resultToShow.data.userId || resultToShow.data.uid || resultToShow.data.id;
+                    } else if (resultToShow.data.user && resultToShow.data.user.uid) {
+                        userId = resultToShow.data.user.uid;
+                    }
+                    if (userId) {
+                        localStorage.setItem('userId', userId);
                     }
                     document.dispatchEvent(new Event('tokenChanged'));
                     const keys = Object.keys(resultToShow.data);
