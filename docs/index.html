@@ -3,416 +3,1763 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyGym Backend Tester</title>
+    <title>MyGym API Tester</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 140px;
-            width: 200px;
-            background: white;
-            padding: 20px;
-            border-right: 2px solid #e9ecef;
-            height: calc(100vh - 140px);
-            overflow-y: auto;
-        }
-        .sidebar a {
-            display: block;
-            padding: 10px;
-            margin-bottom: 5px;
-            color: #667eea;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background 0.3s;
-        }
-        .sidebar a:hover {
-            background: #f8f9fa;
-        }
-        main {
-            margin-left: 220px;
-        }
-    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Debug LocalStorage -->
-        <div id="localStorageDebug" style="background:#f8f9fa;border:1px solid #e9ecef;padding:10px 20px;margin-bottom:15px;border-radius:8px;font-size:0.95em;max-width:600px;">
-            <strong>Debug LocalStorage:</strong>
-            <div><b>Token:</b> <span id="debugToken"></span></div>
-            <div><b>UserId:</b> <span id="debugUserId"></span></div>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <h1 class="logo">⚡ MyGym API Tester</h1>
         </div>
-        <header>
-            <h1>🏋️ MyGym Backend Tester</h1>
-            <div class="config">
+        <div class="header-center">
+            <div class="url-config">
                 <label for="baseUrl">Base URL:</label>
-                <input type="text" id="baseUrl" value="https://us-central1-mygym-912d1.cloudfunctions.net" placeholder="https://tu-proyecto.cloudfunctions.net">
-                <button id="logoutBtn" style="margin-left:20px;display:none;">Cerrar sesión</button>
+                <select id="urlPreset" onchange="ApiTester.setUrlPreset(this.value)">
+                    <option value="prod">Producción</option>
+                    <option value="local">Local (Emulador)</option>
+                    <option value="custom">Personalizado</option>
+                </select>
+                <input type="text" id="baseUrl" value="https://us-central1-mygym-912d1.cloudfunctions.net" placeholder="URL del backend">
             </div>
-        </header>
-
-        <!-- Landing Page -->
-        <section class="landing">
-            <h2>Bienvenido a MyGym</h2>
-            <p>Gestioná tu gimnasio, usuarios, rutinas y finanzas desde un solo lugar.</p>
-            <div class="landing-actions">
-                <button id="openLoginModal">Iniciar sesión</button>
-                <button id="openRegisterModal">Registrarse</button>
+        </div>
+        <div class="header-right">
+            <div id="authStatus" class="auth-status">
+                <span class="status-dot offline"></span>
+                <span class="status-text">No autenticado</span>
             </div>
-        </section>
+            <button id="logoutBtn" class="btn btn-danger" style="display:none;" onclick="ApiTester.logout()">Cerrar sesión</button>
+        </div>
+    </header>
 
+    <!-- Main Layout -->
+    <div class="layout">
+        <!-- Sidebar -->
         <nav class="sidebar">
-            <a href="#auth">🔐 Auth</a>
-            <a href="#users">👤 Usuarios</a>
-            <a href="#gyms">🏢 Gimnasios</a>
-            <a href="#exercises">💪 Ejercicios</a>
-            <a href="#routines">📋 Rutinas</a>
-            <a href="#progress">📊 Progreso</a>
-            <a href="#streaks">🔥 Rachas</a>
-            <a href="#registrations">📝 Inscripciones</a>
-            <a href="#payments">💳 Pagos</a>
-            <a href="#finance">💰 Finanzas</a>
+            <div class="sidebar-section">
+                <span class="sidebar-label">Autenticación</span>
+                <a href="#auth" class="sidebar-link active" data-section="auth">🔐 Auth</a>
+                <a href="#users" class="sidebar-link" data-section="users">👤 Usuarios</a>
+            </div>
+            <div class="sidebar-section">
+                <span class="sidebar-label">Gimnasio</span>
+                <a href="#gyms" class="sidebar-link" data-section="gyms">🏢 Gimnasios</a>
+                <a href="#classes" class="sidebar-link" data-section="classes">📅 Clases</a>
+            </div>
+            <div class="sidebar-section">
+                <span class="sidebar-label">Entrenamiento</span>
+                <a href="#exercises" class="sidebar-link" data-section="exercises">💪 Ejercicios</a>
+                <a href="#routines" class="sidebar-link" data-section="routines">📋 Rutinas</a>
+                <a href="#streaks" class="sidebar-link" data-section="streaks">🔥 Rachas</a>
+            </div>
+            <div class="sidebar-section">
+                <span class="sidebar-label">Gestión</span>
+                <a href="#registrations" class="sidebar-link" data-section="registrations">📝 Inscripciones</a>
+                <a href="#payments" class="sidebar-link" data-section="payments">💳 Pagos</a>
+                <a href="#finance" class="sidebar-link" data-section="finance">💰 Finanzas</a>
+            </div>
         </nav>
 
-        <!-- Modales -->
-        <div id="loginModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closeLoginModal">&times;</span>
-                <h2>Iniciar sesión</h2>
-                <form id="loginForm">
-                    <input type="email" id="loginEmail" placeholder="Email" required>
-                    <input type="password" id="loginPassword" placeholder="Contraseña" required>
-                    <button type="submit">Ingresar</button>
-                </form>
-                <div id="loginModalResponse" class="response"></div>
-            </div>
-        </div>
-        <div id="registerModal" class="modal">
-            <div class="modal-content">
-                <span class="close" id="closeRegisterModal">&times;</span>
-                <h2>Registrarse</h2>
-                <form id="registerForm">
-                    <label for="registerType" style="margin-bottom:5px;">¿Te querés registrar como:</label>
-                    <select id="registerType" required style="margin-bottom:15px;">
-                        <option value="client">Cliente</option>
-                        <option value="gym">Gimnasio</option>
-                    </select>
-                    <div id="registerClientFields">
-                        <input type="email" id="registerEmail" placeholder="Email" required>
-                        <input type="password" id="registerPassword" placeholder="Contraseña" required>
-                        <input type="password" id="registerPassword2" placeholder="Confirmar contraseña" required>
-                        <input type="text" id="registerName" placeholder="Nombre completo" required>
-                        <input type="text" id="registerDni" placeholder="DNI" required>
-                        <input type="date" id="registerBirthDate" placeholder="Fecha de nacimiento" required>
-                        <input type="text" id="registerGymId" placeholder="ID de gimnasio" required>
-                        <select id="registerGender">
-                            <option value="">Género (opcional)</option>
-                            <option value="male">Masculino</option>
-                            <option value="female">Femenino</option>
-                            <option value="other">Otro</option>
-                        </select>
-                        <input type="url" id="registerAvatarUri" placeholder="Avatar URL (opcional)">
-                        <input type="text" id="registerPhone" placeholder="Teléfono (opcional)">
-                        <input type="number" id="registerWeight" placeholder="Peso (kg, opcional)" min="20" max="500">
-                        <input type="number" id="registerHeight" placeholder="Altura (cm, opcional)" min="100" max="250">
-                    </div>
-                    <div id="registerGymFields" style="display:none;">
-                        <input type="email" id="registerGymEmail" placeholder="Email" required>
-                        <input type="password" id="registerGymPassword" placeholder="Contraseña" required>
-                        <input type="text" id="registerGymBusinessName" placeholder="Nombre del gimnasio" required>
-                        <input type="text" id="registerGymAddress" placeholder="Dirección" required>
-                        <input type="text" id="registerGymPhone" placeholder="Teléfono (opcional)">
-                        <input type="url" id="registerGymAvatarUri" placeholder="Avatar URL (opcional)">
-                    </div>
-                    <button type="submit">Crear cuenta</button>
-                </form>
-                <div id="registerModalResponse" class="response"></div>
-            </div>
-        </div>
-
-        <main>
-            </section>
-
-            <!-- ==================== GIMNASIOS ==================== -->
-            <section class="section" id="gyms">
-                <h2>🏢 Gimnasios</h2>
-                <div class="endpoint">
-
-                <div class="endpoint">
-                    <h3>Listar Gimnasios</h3>
-                    <button onclick="getAllGyms()">GET /gyms/gyms</button>
-                    <div class="response" id="getAllGymsResponse"></div>
-                </div>
-
-                <div class="endpoint">
-                    <h3>Obtener Gimnasio</h3>
-                    <input type="text" id="getGymId" placeholder="gymId">
-                    <button onclick="getGym()">GET /gyms/gyms/:gymId</button>
-                    <div class="response" id="getGymResponse"></div>
-                </div>
-            </section>
-
-            <!-- ==================== EJERCICIOS ==================== -->
-            <section class="section" id="exercises">
-                <h2>💪 Ejercicios</h2>
-                <div class="endpoint">
-                    <h3>Crear Ejercicio</h3>
-                    <form id="createExerciseForm">
-                        <input type="text" id="exerciseNombre" placeholder="Nombre" required>
-                        <input type="text" id="exerciseDescripcion" placeholder="Descripción (opcional)">
-                        <select id="exerciseCategoria" required>
-                            <option value="">Categoría</option>
-                            <option value="fuerza">Fuerza</option>
-                            <option value="cardio">Cardio</option>
-                            <option value="flexibilidad">Flexibilidad</option>
-                            <option value="otro">Otro</option>
-                        </select>
-                        <input type="text" id="exerciseGrupoMuscular" placeholder="Grupo muscular (opcional)">
-                        <input type="text" id="exerciseEquipamiento" placeholder="Equipamiento (opcional)">
-                        <input type="url" id="exerciseVideoUrl" placeholder="URL del video (opcional)">
-                        <input type="url" id="exerciseImagenUrl" placeholder="URL de la imagen (opcional)">
-                        <textarea id="exerciseInstrucciones" placeholder="Instrucciones (opcional)"></textarea>
-                        <button type="submit">POST /exercises/create</button>
-                    </form>
-                    <div class="response" id="createExerciseResponse"></div>
-                </div>
-
-                <div class="endpoint">
-                    <h3>Listar Ejercicios</h3>
-                    <button onclick="getAllExercises()">GET /exercises</button>
-                    <div class="response" id="getAllExercisesResponse"></div>
-                </div>
-
-                <div class="endpoint">
-                    <h3>Obtener Ejercicio</h3>
-                    <input type="text" id="getExerciseId" placeholder="exerciseId">
-                    <button onclick="getExerciseById()">GET /exercises/:exerciseId</button>
-                    <div class="response" id="getExerciseByIdResponse"></div>
-                </div>
-            </section>
-
-            <!-- ==================== RUTINAS ==================== -->
-            <section class="section" id="routines">
-                <h2>📋 Rutinas</h2>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- ==================== AUTH ==================== -->
+            <section id="auth" class="section active">
+                <h2 class="section-title">🔐 Autenticación</h2>
                 
-                <div class="endpoint">
-                    <h3>Crear Rutina</h3>
-                        <div class="endpoint">
-                            <h3>Crear Rutina</h3>
-                            <form id="createRoutineForm">
-                                <input type="text" id="routineNombre" placeholder="Nombre" required>
-                                <input type="text" id="routineDescripcion" placeholder="Descripción (opcional)">
-                                <div id="routineExercises">
-                                    <h4>Ejercicios</h4>
-                                    <div class="routine-exercise">
-                                        <select class="exerciseId" required>
-                                            <option value="">Seleccionar ejercicio...</option>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/auth/auth/login</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="loginForm" onsubmit="AuthModule.login(event)">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="loginEmail" placeholder="usuario@ejemplo.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Password</label>
+                                <input type="password" id="loginPassword" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/auth/auth/forgot-password</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="forgotPasswordForm" onsubmit="AuthModule.forgotPassword(event)">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="forgotEmail" placeholder="usuario@ejemplo.com" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar email de recuperación</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/auth/auth/reset-password</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="resetPasswordForm" onsubmit="AuthModule.resetPassword(event)">
+                            <div class="form-group">
+                                <label>Código OOB (del email)</label>
+                                <input type="text" id="resetOobCode" placeholder="oobCode del link" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nueva Contraseña</label>
+                                <input type="password" id="resetNewPassword" placeholder="••••••••" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Restablecer Contraseña</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== USERS ==================== -->
+            <section id="users" class="section">
+                <h2 class="section-title">👤 Usuarios</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/users/auth/register/client</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="registerClientForm" onsubmit="UsersModule.registerClient(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="regClientEmail" placeholder="cliente@ejemplo.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Password *</label>
+                                    <input type="password" id="regClientPassword" placeholder="••••••••" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="regClientName" placeholder="Juan Pérez" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>DNI *</label>
+                                    <input type="text" id="regClientDni" placeholder="12345678" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Fecha de Nacimiento *</label>
+                                    <input type="date" id="regClientBirthDate" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gimnasio *</label>
+                                    <div class="input-with-btn">
+                                        <select id="regClientGymId" required>
+                                            <option value="">Seleccionar gimnasio...</option>
                                         </select>
-                                        <input type="number" class="sets" placeholder="Sets" min="1" required>
-                                        <input type="number" class="reps" placeholder="Reps" min="1" required>
-                                        <input type="number" class="weight" placeholder="Peso (opcional)">
-                                        <input type="text" class="notes" placeholder="Notas (opcional)">
-                                        <button type="button" class="removeExercise" onclick="this.parentElement.remove()">Quitar</button>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('regClientGymId')">Cargar</button>
                                     </div>
                                 </div>
-                                <button type="button" id="addExerciseBtn">Agregar ejercicio</button>
-                                <button type="submit">POST /routines/create</button>
-                            </form>
-                            <div class="response" id="createRoutineResponse"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Género</label>
+                                    <select id="regClientGender">
+                                        <option value="">Seleccionar...</option>
+                                        <option value="male">Masculino</option>
+                                        <option value="female">Femenino</option>
+                                        <option value="other">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Teléfono</label>
+                                    <input type="tel" id="regClientPhone" placeholder="+54 11 1234-5678">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Peso (kg)</label>
+                                    <input type="number" id="regClientWeight" placeholder="70" min="20" max="500">
+                                </div>
+                                <div class="form-group">
+                                    <label>Altura (cm)</label>
+                                    <input type="number" id="regClientHeight" placeholder="175" min="100" max="250">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrar Cliente</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/users/users/me</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="UsersModule.getMe()">Obtener Mi Perfil</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/users/users/me</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateProfileForm" onsubmit="UsersModule.updateMe(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre</label>
+                                    <input type="text" id="updateName" placeholder="Nuevo nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Teléfono</label>
+                                    <input type="tel" id="updatePhone" placeholder="+54 11 1234-5678">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Género</label>
+                                    <select id="updateGender">
+                                        <option value="">Sin cambios</option>
+                                        <option value="male">Masculino</option>
+                                        <option value="female">Femenino</option>
+                                        <option value="other">Otro</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Avatar URL</label>
+                                    <input type="url" id="updateAvatarUri" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Peso (kg)</label>
+                                    <input type="number" id="updateWeight" min="20" max="500">
+                                </div>
+                                <div class="form-group">
+                                    <label>Altura (cm)</label>
+                                    <input type="number" id="updateHeight" min="100" max="250">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Perfil</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/users/users/me/password</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="changePasswordForm" onsubmit="UsersModule.changePassword(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Contraseña Actual</label>
+                                    <input type="password" id="currentPassword" placeholder="••••••••" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nueva Contraseña</label>
+                                    <input type="password" id="newPassword" placeholder="••••••••" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Cambiar Contraseña</button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== GYMS ==================== -->
+            <section id="gyms" class="section">
+                <h2 class="section-title">🏢 Gimnasios</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/gyms/auth/register/gym</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="registerGymForm" onsubmit="GymsModule.registerGym(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="regGymEmail" placeholder="gym@ejemplo.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Password *</label>
+                                    <input type="password" id="regGymPassword" placeholder="••••••••" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre del Gimnasio *</label>
+                                    <input type="text" id="regGymBusinessName" placeholder="Gym Fitness Center" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Dirección *</label>
+                                    <input type="text" id="regGymAddress" placeholder="Av. Principal 123" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Teléfono</label>
+                                    <input type="tel" id="regGymPhone" placeholder="+54 11 1234-5678">
+                                </div>
+                                <div class="form-group">
+                                    <label>Avatar URL</label>
+                                    <input type="url" id="regGymAvatarUri" placeholder="https://...">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrar Gimnasio</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/gyms/gyms</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="GymsModule.getAllGyms()">Listar Todos los Gimnasios</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group flex-grow">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="getGymId">
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('getGymId')">Cargar</button>
+                                </div>
+                            </div>
                         </div>
-                    <h3>Asignar Rutina a Usuario</h3>
-                    <input type="text" id="assignUserId" placeholder="userId">
-                    <input type="text" id="assignRoutineId" placeholder="routineId">
-                    <button onclick="assignRoutine()">POST /routines/assign</button>
-                    <div class="response" id="assignRoutineResponse"></div>
+                        <button class="btn btn-primary" onclick="GymsModule.getGymById()">Obtener Gimnasio</button>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Obtener Rutina del Usuario</h3>
-                    <input type="text" id="getUserRoutineId" placeholder="userId">
-                    <button onclick="getUserRoutine()">GET /routines/user/:userId</button>
-                    <div class="response" id="getUserRoutineResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/gyms/gyms/me</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateGymForm" onsubmit="GymsModule.updateGymMe(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre del Gimnasio</label>
+                                    <input type="text" id="updateGymBusinessName" placeholder="Nuevo nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Dirección</label>
+                                    <input type="text" id="updateGymAddress" placeholder="Nueva dirección">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Teléfono</label>
+                                    <input type="tel" id="updateGymPhone" placeholder="+54 11 1234-5678">
+                                </div>
+                                <div class="form-group">
+                                    <label>Avatar URL</label>
+                                    <input type="url" id="updateGymAvatarUri" placeholder="https://...">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Mi Gimnasio</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Obtener Rutina por ID</h3>
-                    <input type="text" id="getRoutineId" placeholder="routineId">
-                    <button onclick="getRoutineById()">GET /routines/:routineId</button>
-                    <div class="response" id="getRoutineByIdResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId/stats</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group flex-grow">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="statsGymId">
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('statsGymId')">Cargar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="GymsModule.getGymStats()">Obtener Estadísticas</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId/clients</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="addClientManualForm" onsubmit="GymsModule.addClientManually(event)">
+                            <div class="form-group">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="addClientGymId" required>
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('addClientGymId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Email *</label>
+                                    <input type="email" id="manualClientEmail" placeholder="cliente@ejemplo.com" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="manualClientName" placeholder="Juan Pérez" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>DNI *</label>
+                                    <input type="text" id="manualClientDni" placeholder="12345678" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha Nacimiento *</label>
+                                    <input type="date" id="manualClientBirthDate" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrar Cliente Manualmente</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId/clients</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="listClientsGymId">
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('listClientsGymId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <select id="listClientsStatus">
+                                    <option value="">Todos</option>
+                                    <option value="active">Activos</option>
+                                    <option value="inactive">Inactivos</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="GymsModule.getGymClients()">Listar Clientes</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId/clients/:clientId</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="deactivateClientGymId">
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('deactivateClientGymId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Cliente</label>
+                                <div class="input-with-btn">
+                                    <select id="deactivateClientId">
+                                        <option value="">Seleccionar cliente...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClients('deactivateClientGymId', 'deactivateClientId')">Cargar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="GymsModule.deactivateClient()">Dar de Baja Cliente</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method patch">PATCH</span>
+                        <span class="endpoint-path">/gyms/gyms/:gymId/clients/:clientId/activate</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gimnasio</label>
+                                <div class="input-with-btn">
+                                    <select id="activateClientGymId">
+                                        <option value="">Seleccionar gimnasio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('activateClientGymId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Cliente</label>
+                                <div class="input-with-btn">
+                                    <select id="activateClientId">
+                                        <option value="">Seleccionar cliente...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClients('activateClientGymId', 'activateClientId')">Cargar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-success" onclick="GymsModule.activateClient()">Reactivar Cliente</button>
+                    </div>
                 </div>
             </section>
 
-            <!-- ==================== PROGRESO ==================== -->
-            <section class="section" id="progress">
-                                               <h2>📊 Progreso</h2> 
-                                               <div class="endpoint">
-                                                    <h3>Registrar Progreso</h3>
-                                                    <form id="logProgressForm">
-                                                        <input type="date" id="progressDate" placeholder="Fecha (opcional)">
-                                                        <div id="progressExercises">
-                                                            <h4>Ejercicios realizados</h4>
-                                                            <div class="progress-exercise">
-                                                                <select class="exerciseId" required><option value="">Seleccionar ejercicio...</option></select>
-                                                                <input type="number" class="completedSets" placeholder="Sets completados" min="0" required>
-                                                                <input type="number" class="completedReps" placeholder="Reps completadas (opcional)" min="0">
-                                                                <input type="number" class="weight" placeholder="Peso (opcional)">
-                                                                <input type="text" class="notes" placeholder="Notas (opcional)">
-                                                                <button type="button" class="removeProgressExercise" onclick="this.parentElement.remove()">Quitar</button>
-                                                            </div>
-                                                        </div>
-                                                        <button type="button" id="addProgressExerciseBtn">Agregar ejercicio</button>
-                                                        <input type="text" id="progressNotes" placeholder="Notas generales (opcional)">
-                                                        <button type="submit">POST /routines/progress</button>
-                                                    </form>
-                                                    <div class="response" id="logProgressResponse"></div>
-                                                </div>
-                                
+            <!-- ==================== CLASSES ==================== -->
+            <section id="classes" class="section">
+                <h2 class="section-title">📅 Clases</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/categories</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="ClassesModule.getCategories()">Listar Categorías</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/classes/categories</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="createCategoryForm" onsubmit="ClassesModule.createCategory(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="categoryName" placeholder="Yoga" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Descripción</label>
+                                    <input type="text" id="categoryDescription" placeholder="Clases de relajación...">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Crear Categoría</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Filtrar por estado</label>
+                            <select id="classesActiveFilter">
+                                <option value="">Todas</option>
+                                <option value="true">Solo activas</option>
+                                <option value="false">Solo inactivas</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.getAllClasses()">Listar Clases</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/classes/</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="createClassForm" onsubmit="ClassesModule.createClass(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="className" placeholder="Spinning Avanzado" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Cupo Máximo *</label>
+                                    <input type="number" id="classCupoMaximo" placeholder="20" min="1" max="200" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="classDescripcion" placeholder="Clase de ciclismo intensivo..." rows="2"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Horarios (JSON) *</label>
+                                <textarea id="classDiasHorarios" placeholder='{"lunes": ["08:00-09:00", "18:00-19:00"], "miercoles": ["08:00-09:00"]}' rows="3" required></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>URL Imagen</label>
+                                    <input type="url" id="classImagen" placeholder="https://...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Categoría ID</label>
+                                    <input type="text" id="classCategoriaId" placeholder="ID de categoría">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Crear Clase</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/:id</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Clase</label>
+                            <div class="input-with-btn">
+                                <select id="getClassId">
+                                    <option value="">Seleccionar clase...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('getClassId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.getClassById()">Obtener Clase</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/classes/:id</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateClassForm" onsubmit="ClassesModule.updateClass(event)">
+                            <div class="form-group">
+                                <label>Clase</label>
+                                <div class="input-with-btn">
+                                    <select id="updateClassId" required>
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('updateClassId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre</label>
+                                    <input type="text" id="updateClassName" placeholder="Nuevo nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Cupo Máximo</label>
+                                    <input type="number" id="updateClassCupo" min="1" max="200">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="updateClassDescripcion" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Clase</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/classes/:id</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Clase</label>
+                            <div class="input-with-btn">
+                                <select id="deleteClassId">
+                                    <option value="">Seleccionar clase...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('deleteClassId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="ClassesModule.deleteClass()">Archivar Clase</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method patch">PATCH</span>
+                        <span class="endpoint-path">/classes/:id/status</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Clase</label>
+                                <div class="input-with-btn">
+                                    <select id="toggleStatusClassId">
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('toggleStatusClassId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Estado</label>
+                                <select id="toggleStatusValue" required>
+                                    <option value="true">Activar</option>
+                                    <option value="false">Desactivar</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.toggleStatus()">Cambiar Estado</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/:id/schedule</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Clase</label>
+                            <div class="input-with-btn">
+                                <select id="getScheduleClassId">
+                                    <option value="">Seleccionar clase...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('getScheduleClassId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.getSchedule()">Obtener Horarios</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/classes/:id/schedule</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateScheduleForm" onsubmit="ClassesModule.updateSchedule(event)">
+                            <div class="form-group">
+                                <label>Clase</label>
+                                <div class="input-with-btn">
+                                    <select id="updateScheduleClassId" required>
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('updateScheduleClassId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Horarios (JSON)</label>
+                                <textarea id="updateScheduleData" placeholder='{"lunes": ["08:00-09:00"], "viernes": ["17:00-18:00"]}' rows="3" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Horarios</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/classes/:id/image</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateImageForm" onsubmit="ClassesModule.updateImage(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Clase</label>
+                                    <div class="input-with-btn">
+                                        <select id="updateImageClassId" required>
+                                            <option value="">Seleccionar clase...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('updateImageClassId')">Cargar</button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>URL de Imagen</label>
+                                    <input type="url" id="updateImageUrl" placeholder="https://..." required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Imagen</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/:id/stats</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Clase</label>
+                                <div class="input-with-btn">
+                                    <select id="statsClassId">
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('statsClassId')">Cargar</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Fecha Inicio</label>
+                                <input type="date" id="statsStartDate">
+                            </div>
+                            <div class="form-group">
+                                <label>Fecha Fin</label>
+                                <input type="date" id="statsEndDate">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.getStats()">Obtener Estadísticas</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/classes/:id/waitlist</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Clase</label>
+                            <div class="input-with-btn">
+                                <select id="getWaitlistClassId">
+                                    <option value="">Seleccionar clase...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('getWaitlistClassId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.getWaitlist()">Ver Lista de Espera</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/classes/:id/waitlist</span>
+                        <span class="badge auth-required">Auth (Client)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Clase</label>
+                            <div class="input-with-btn">
+                                <select id="joinWaitlistClassId">
+                                    <option value="">Seleccionar clase...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('joinWaitlistClassId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ClassesModule.joinWaitlist()">Unirse a Lista de Espera</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/classes/:id/waitlist/:userId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Clase</label>
+                                <div class="input-with-btn">
+                                    <select id="leaveWaitlistClassId">
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('leaveWaitlistClassId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>User ID (vacío = usuario actual)</label>
+                                <input type="text" id="leaveWaitlistUserId" placeholder="Dejar vacío para ti mismo">
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="ClassesModule.leaveWaitlist()">Salir de Lista de Espera</button>
+                    </div>
+                </div>
             </section>
 
-            <!-- ==================== RACHAS ==================== -->
-            <section class="section" id="streaks">
-                <h2>🔥 Rachas</h2>
-                
-                <div class="endpoint">
-                    <h3>Hacer Check-in</h3>
-                    <input type="text" id="checkinUserId" placeholder="userId">
-                    <input type="text" id="checkinClassId" placeholder="classId/routineId">
-                    <button onclick="checkIn()">POST /streaks/check-in</button>
-                    <div class="response" id="checkInResponse"></div>
+            <!-- ==================== EXERCISES ==================== -->
+            <section id="exercises" class="section">
+                <h2 class="section-title">💪 Ejercicios</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/exercises/</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="ExercisesModule.getAllExercises()">Listar Ejercicios</button>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Racha</h3>
-                    <input type="text" id="streakUserId" placeholder="userId">
-                    <button onclick="getStreak()">GET /streaks/streak/:userId</button>
-                    <div class="response" id="getStreakResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/exercises/create</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="createExerciseForm" onsubmit="ExercisesModule.createExercise(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="exerciseNombre" placeholder="Press de Banca" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Categoría *</label>
+                                    <select id="exerciseCategoria" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="fuerza">Fuerza</option>
+                                        <option value="cardio">Cardio</option>
+                                        <option value="flexibilidad">Flexibilidad</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="exerciseDescripcion" placeholder="Ejercicio para pectorales..." rows="2"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Grupo Muscular</label>
+                                    <input type="text" id="exerciseGrupoMuscular" placeholder="Pectorales">
+                                </div>
+                                <div class="form-group">
+                                    <label>Equipamiento</label>
+                                    <input type="text" id="exerciseEquipamiento" placeholder="Barra y banco">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Video URL</label>
+                                    <input type="url" id="exerciseVideoUrl" placeholder="https://youtube.com/...">
+                                </div>
+                                <div class="form-group">
+                                    <label>Imagen URL</label>
+                                    <input type="url" id="exerciseImagenUrl" placeholder="https://...">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Instrucciones</label>
+                                <textarea id="exerciseInstrucciones" placeholder="1. Acostarse en el banco..." rows="3"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Crear Ejercicio</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Historial</h3>
-                    <input type="text" id="historyUserId" placeholder="userId">
-                    <button onclick="getHistory()">GET /streaks/history?userId=</button>
-                    <div class="response" id="getHistoryResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/exercises/:exerciseId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Ejercicio</label>
+                            <div class="input-with-btn">
+                                <select id="getExerciseId">
+                                    <option value="">Seleccionar ejercicio...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadExercises('getExerciseId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="ExercisesModule.getExerciseById()">Obtener Ejercicio</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/exercises/:exerciseId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateExerciseForm" onsubmit="ExercisesModule.updateExercise(event)">
+                            <div class="form-group">
+                                <label>Ejercicio</label>
+                                <div class="input-with-btn">
+                                    <select id="updateExerciseId" required>
+                                        <option value="">Seleccionar ejercicio...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadExercises('updateExerciseId')">Cargar</button>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre</label>
+                                    <input type="text" id="updateExerciseNombre" placeholder="Nuevo nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Categoría</label>
+                                    <select id="updateExerciseCategoria">
+                                        <option value="">Sin cambios</option>
+                                        <option value="fuerza">Fuerza</option>
+                                        <option value="cardio">Cardio</option>
+                                        <option value="flexibilidad">Flexibilidad</option>
+                                        <option value="otro">Otro</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Descripción</label>
+                                <textarea id="updateExerciseDescripcion" rows="2"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Ejercicio</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/exercises/:exerciseId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Ejercicio</label>
+                            <div class="input-with-btn">
+                                <select id="deleteExerciseId">
+                                    <option value="">Seleccionar ejercicio...</option>
+                                </select>
+                                <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadExercises('deleteExerciseId')">Cargar</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-danger" onclick="ExercisesModule.deleteExercise()">Archivar Ejercicio</button>
+                    </div>
                 </div>
             </section>
 
-            <!-- ==================== INSCRIPCIONES ==================== -->
-            <section class="section" id="registrations">
-                <h2>📝 Inscripciones</h2>
-                
-                <div class="endpoint">
-                    <h3>Crear Inscripción</h3>
-                    <form id="createRegistrationForm">
-                        <input type="text" id="registrationUserId" placeholder="ID de usuario" required>
-                        <input type="text" id="registrationGymId" placeholder="ID de gimnasio" required>
-                        <select id="registrationMembershipType" required>
-                            <option value="">Tipo de membresía</option>
-                            <option value="monthly">Mensual</option>
-                            <option value="annual">Anual</option>
-                            <option value="weekly">Semanal</option>
-                        </select>
-                        <input type="date" id="registrationStartDate" placeholder="Fecha de inicio" required>
-                        <button type="submit">POST /registrations</button>
-                    </form>
-                    <div class="response" id="createRegistrationResponse"></div>
+            <!-- ==================== ROUTINES ==================== -->
+            <section id="routines" class="section">
+                <h2 class="section-title">📋 Rutinas</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/routines/create</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="createRoutineForm" onsubmit="RoutinesModule.createRoutine(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre *</label>
+                                    <input type="text" id="routineNombre" placeholder="Rutina de Fuerza" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Descripción</label>
+                                    <input type="text" id="routineDescripcion" placeholder="Rutina para principiantes...">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Ejercicios (JSON Array) *</label>
+                                <textarea id="routineEjercicios" rows="4" required placeholder='[
+  {"exerciseId": "abc123", "sets": 3, "reps": 12, "weight": 20, "notes": "Con barra"}
+]'></textarea>
+                                <small class="form-hint">Formato: [{"exerciseId": "...", "sets": N, "reps": N, "weight": N?, "notes": "?"}]</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Crear Rutina</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Mis Inscripciones</h3>
-                    <input type="text" id="getRegistrationsUserId" placeholder="userId">
-                    <button onclick="getUserRegistrations()">GET /registrations?userId=</button>
-                    <div class="response" id="getUserRegistrationsResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/routines/:routineId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Rutina ID</label>
+                            <input type="text" id="getRoutineId" placeholder="ID de la rutina">
+                        </div>
+                        <button class="btn btn-primary" onclick="RoutinesModule.getRoutineById()">Obtener Rutina</button>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Historial de Inscripciones</h3>
-                    <input type="text" id="getRegistrationHistoryUserId" placeholder="userId">
-                    <button onclick="getRegistrationHistory()">GET /registrations/history?userId=</button>
-                    <div class="response" id="getRegistrationHistoryResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/routines/:routineId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateRoutineForm" onsubmit="RoutinesModule.updateRoutine(event)">
+                            <div class="form-group">
+                                <label>Rutina ID</label>
+                                <input type="text" id="updateRoutineId" placeholder="ID de la rutina" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Nombre</label>
+                                    <input type="text" id="updateRoutineNombre" placeholder="Nuevo nombre">
+                                </div>
+                                <div class="form-group">
+                                    <label>Descripción</label>
+                                    <input type="text" id="updateRoutineDescripcion" placeholder="Nueva descripción">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Ejercicios (JSON Array)</label>
+                                <textarea id="updateRoutineEjercicios" rows="3" placeholder="[{...}]"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Rutina</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Cancelar Inscripción</h3>
-                    <input type="text" id="cancelRegistrationId" placeholder="registrationId">
-                    <button onclick="cancelRegistration()">POST /registrations/:id/cancel</button>
-                    <div class="response" id="cancelRegistrationResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/routines/:routineId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Rutina ID</label>
+                            <input type="text" id="deleteRoutineId" placeholder="ID de la rutina">
+                        </div>
+                        <button class="btn btn-danger" onclick="RoutinesModule.deleteRoutine()">Archivar Rutina</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/routines/assign</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="assignRoutineForm" onsubmit="RoutinesModule.assignRoutine(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>User ID *</label>
+                                    <input type="text" id="assignUserId" placeholder="ID del usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Rutina ID *</label>
+                                    <input type="text" id="assignRoutineId" placeholder="ID de la rutina" required>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Asignar Rutina</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/routines/user/:userId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group flex-grow">
+                                <label>User ID (vacío = usuario actual)</label>
+                                <input type="text" id="getUserRoutineUserId" placeholder="ID del usuario">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="RoutinesModule.getUserRoutine()">Obtener Rutina del Usuario</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/routines/progress</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="logProgressForm" onsubmit="RoutinesModule.logProgress(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>User ID *</label>
+                                    <input type="text" id="progressUserId" placeholder="ID del usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Fecha</label>
+                                    <input type="date" id="progressDate">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Ejercicios Completados (JSON Array) *</label>
+                                <textarea id="progressExercises" rows="4" required placeholder='[
+  {"exerciseId": "abc123", "completedSets": 3, "completedReps": 10, "weight": 25}
+]'></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Notas</label>
+                                <input type="text" id="progressNotes" placeholder="Notas del entrenamiento...">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrar Progreso</button>
+                        </form>
+                    </div>
                 </div>
             </section>
 
-            <!-- ==================== PAGOS ==================== -->
-            <section class="section" id="payments">
-                <h2>💳 Pagos</h2>
-                
-                <div class="endpoint">
-                    <h3>Procesar Pago</h3>
-                    <form id="processPaymentForm">
-                        <input type="text" id="paymentUserId" placeholder="ID de usuario" required>
-                        <input type="number" id="paymentAmount" placeholder="Monto" min="1" required>
-                        <select id="paymentMethod" required>
-                            <option value="">Método de pago</option>
-                            <option value="mercadopago">MercadoPago</option>
-                            <option value="efectivo">Efectivo</option>
-                            <option value="tarjeta">Tarjeta</option>
-                        </select>
-                        <input type="text" id="paymentDescription" placeholder="Descripción" required>
-                        <button type="submit">POST /payments/process</button>
-                    </form>
-                    <div class="response" id="processPaymentResponse"></div>
+            <!-- ==================== STREAKS ==================== -->
+            <section id="streaks" class="section">
+                <h2 class="section-title">🔥 Rachas</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/streaks/check-in</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="checkInForm" onsubmit="StreaksModule.checkIn(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>User ID *</label>
+                                    <input type="text" id="checkInUserId" placeholder="ID del usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gym ID</label>
+                                    <div class="input-with-btn">
+                                        <select id="checkInGymId">
+                                            <option value="">Seleccionar gimnasio...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('checkInGymId')">Cargar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Class ID</label>
+                                    <div class="input-with-btn">
+                                        <select id="checkInClassId">
+                                            <option value="">Seleccionar clase...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('checkInClassId')">Cargar</button>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Código</label>
+                                    <input type="text" id="checkInCode" placeholder="Código QR/PIN">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Hacer Check-in</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Estado de Pago del Usuario</h3>
-                    <input type="text" id="paymentStatusUserId" placeholder="userId">
-                    <button onclick="getPaymentStatus()">GET /payments/status/:userId</button>
-                    <div class="response" id="getPaymentStatusResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/streaks/history</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="streakHistoryUserId" placeholder="ID del usuario">
+                        </div>
+                        <button class="btn btn-primary" onclick="StreaksModule.getHistory()">Ver Historial</button>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Historial de Pagos</h3>
-                    <input type="text" id="paymentHistoryUserId" placeholder="userId">
-                    <button onclick="getPaymentHistory()">GET /payments/history/:userId</button>
-                    <div class="response" id="getPaymentHistoryResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/streaks/:userId</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="getStreakUserId" placeholder="ID del usuario">
+                        </div>
+                        <button class="btn btn-primary" onclick="StreaksModule.getStreak()">Obtener Racha</button>
+                    </div>
                 </div>
             </section>
 
-            <!-- ==================== FINANZAS ==================== -->
-            <section class="section" id="finance">
-                <h2>💰 Finanzas</h2>
-                
-                <div class="endpoint">
-                                        <form id="createRoutineForm">
-                                                <input type="text" id="routineNombre" placeholder="Nombre" required>
-                                                <input type="text" id="routineDescripcion" placeholder="Descripción (opcional)">
-                                                <div id="routineExercises">
-                                                        <h4>Ejercicios</h4>
-                                                        <div class="routine-exercise">
-                                                                <input type="text" class="exerciseId" placeholder="ID de ejercicio" required>
-                                                                <input type="number" class="sets" placeholder="Sets" min="1" required>
-                                                                <input type="number" class="reps" placeholder="Reps" min="1" required>
-                                                                <input type="number" class="weight" placeholder="Peso (opcional)">
-                                                                <input type="text" class="notes" placeholder="Notas (opcional)">
-                                                                <button type="button" class="removeExercise" onclick="this.parentElement.remove()">Quitar</button>
-                                                        </div>
-                                                </div>
-                                                <button type="button" id="addExerciseBtn">Agregar ejercicio</button>
-                                                <button type="submit">POST /routines/create</button>
-                                        </form>
-                    <div class="response" id="updateFinanceSettingsResponse"></div>
+            <!-- ==================== REGISTRATIONS ==================== -->
+            <section id="registrations" class="section">
+                <h2 class="section-title">📝 Inscripciones</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/registrations/</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="getRegistrationsUserId" placeholder="ID del usuario">
+                        </div>
+                        <button class="btn btn-primary" onclick="RegistrationsModule.getActive()">Ver Inscripciones Activas</button>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Dashboard Financiero</h3>
-                    <button onclick="getFinanceDashboard()">GET /finance/dashboard</button>
-                    <div class="response" id="getFinanceDashboardResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/registrations/</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="createRegistrationForm" onsubmit="RegistrationsModule.create(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>User ID *</label>
+                                    <input type="text" id="regUserId" placeholder="ID del usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gym ID *</label>
+                                    <div class="input-with-btn">
+                                        <select id="regGymId" required>
+                                            <option value="">Seleccionar gimnasio...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('regGymId')">Cargar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Class ID *</label>
+                                <div class="input-with-btn">
+                                    <select id="regClassId" required>
+                                        <option value="">Seleccionar clase...</option>
+                                    </select>
+                                    <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadClasses('regClassId')">Cargar</button>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Crear Inscripción</button>
+                        </form>
+                    </div>
                 </div>
 
-                <div class="endpoint">
-                    <h3>Ver Deudores</h3>
-                    <button onclick="getDebtors()">GET /finance/debtors</button>
-                    <div class="response" id="getDebtorsResponse"></div>
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/registrations/history</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="regHistoryUserId" placeholder="ID del usuario">
+                        </div>
+                        <button class="btn btn-primary" onclick="RegistrationsModule.getHistory()">Ver Historial</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/registrations/:id</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Registration ID</label>
+                            <input type="text" id="getRegistrationId" placeholder="ID de la inscripción">
+                        </div>
+                        <button class="btn btn-primary" onclick="RegistrationsModule.getById()">Obtener Inscripción</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/registrations/:id</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Registration ID</label>
+                            <input type="text" id="cancelRegistrationId" placeholder="ID de la inscripción">
+                        </div>
+                        <button class="btn btn-danger" onclick="RegistrationsModule.cancel()">Cancelar Inscripción</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== PAYMENTS ==================== -->
+            <section id="payments" class="section">
+                <h2 class="section-title">💳 Pagos</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/payments/process</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="processPaymentForm" onsubmit="PaymentsModule.processPayment(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Monto *</label>
+                                    <input type="number" id="paymentAmount" placeholder="1000" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Método *</label>
+                                    <input type="text" id="paymentMethod" placeholder="mercadopago" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Token *</label>
+                                    <input type="text" id="paymentToken" placeholder="Token de pago" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Gym ID *</label>
+                                    <div class="input-with-btn">
+                                        <select id="paymentGymId" required>
+                                            <option value="">Seleccionar gimnasio...</option>
+                                        </select>
+                                        <button type="button" class="btn btn-sm" onclick="SmartSelectors.loadGyms('paymentGymId')">Cargar</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Concepto</label>
+                                <input type="text" id="paymentConcept" placeholder="Cuota mensual">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Procesar Pago</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/payments/history</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Año (opcional)</label>
+                            <input type="number" id="paymentHistoryYear" placeholder="2024" min="2020" max="2030">
+                        </div>
+                        <button class="btn btn-primary" onclick="PaymentsModule.getHistory()">Ver Historial de Pagos</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/payments/status</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="PaymentsModule.getStatus()">Ver Estado de Pago</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/payments/methods</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="PaymentsModule.getMethods()">Listar Métodos de Pago</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/payments/methods</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="addPaymentMethodForm" onsubmit="PaymentsModule.addMethod(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Tipo *</label>
+                                    <select id="methodType" required>
+                                        <option value="">Seleccionar...</option>
+                                        <option value="card">Tarjeta</option>
+                                        <option value="mercadopago">MercadoPago</option>
+                                        <option value="transfer">Transferencia</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Detalles (JSON)</label>
+                                    <input type="text" id="methodDetails" placeholder='{"last4": "1234"}'>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Agregar Método</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method delete">DELETE</span>
+                        <span class="endpoint-path">/payments/methods/:id</span>
+                        <span class="badge auth-required">Auth</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Method ID</label>
+                            <input type="text" id="deleteMethodId" placeholder="ID del método">
+                        </div>
+                        <button class="btn btn-danger" onclick="PaymentsModule.deleteMethod()">Eliminar Método</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== FINANCE ==================== -->
+            <section id="finance" class="section">
+                <h2 class="section-title">💰 Finanzas</h2>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/settings</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="FinanceModule.getSettings()">Obtener Configuración</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method put">PUT</span>
+                        <span class="endpoint-path">/finance/settings</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="updateFinanceSettingsForm" onsubmit="FinanceModule.updateSettings(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Cuota Mensual *</label>
+                                    <input type="number" id="financeMonthlyQuota" placeholder="5000" min="1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Días de Vencimiento</label>
+                                    <input type="number" id="financeExpirationDays" placeholder="30" min="1" value="30">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>% Recargo</label>
+                                    <input type="number" id="financeSurcharge" placeholder="0" min="0" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Moneda</label>
+                                    <input type="text" id="financeCurrency" placeholder="ARS" value="ARS">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Actualizar Configuración</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/dashboard</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Período</label>
+                            <select id="dashboardPeriod">
+                                <option value="">Todos</option>
+                                <option value="week">Semana</option>
+                                <option value="month">Mes</option>
+                                <option value="year">Año</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-primary" onclick="FinanceModule.getDashboard()">Ver Dashboard</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/transactions</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="FinanceModule.getTransactions()">Listar Transacciones</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/reports/monthly</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Mes *</label>
+                                <select id="reportMonth" required>
+                                    <option value="1">Enero</option>
+                                    <option value="2">Febrero</option>
+                                    <option value="3">Marzo</option>
+                                    <option value="4">Abril</option>
+                                    <option value="5">Mayo</option>
+                                    <option value="6">Junio</option>
+                                    <option value="7">Julio</option>
+                                    <option value="8">Agosto</option>
+                                    <option value="9">Septiembre</option>
+                                    <option value="10">Octubre</option>
+                                    <option value="11">Noviembre</option>
+                                    <option value="12">Diciembre</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Año *</label>
+                                <input type="number" id="reportYear" placeholder="2024" min="2020" max="2030" required>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="FinanceModule.getMonthlyReport()">Generar Reporte</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/invoices/:id</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <div class="form-group">
+                            <label>Invoice ID</label>
+                            <input type="text" id="getInvoiceId" placeholder="ID de la factura">
+                        </div>
+                        <button class="btn btn-primary" onclick="FinanceModule.getInvoice()">Obtener Factura</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method get">GET</span>
+                        <span class="endpoint-path">/finance/debtors</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <button class="btn btn-primary" onclick="FinanceModule.getDebtors()">Listar Deudores</button>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/finance/reminders</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="sendRemindersForm" onsubmit="FinanceModule.sendReminders(event)">
+                            <div class="form-group">
+                                <label>User IDs (JSON Array) *</label>
+                                <textarea id="reminderUserIds" rows="2" required placeholder='["userId1", "userId2"]'></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Enviar Recordatorios</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="endpoint-card">
+                    <div class="endpoint-header">
+                        <span class="method post">POST</span>
+                        <span class="endpoint-path">/finance/manual-payment</span>
+                        <span class="badge auth-required">Auth (Gym)</span>
+                    </div>
+                    <div class="endpoint-body">
+                        <form id="manualPaymentForm" onsubmit="FinanceModule.registerManualPayment(event)">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>User ID *</label>
+                                    <input type="text" id="manualPaymentUserId" placeholder="ID del usuario" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Monto *</label>
+                                    <input type="number" id="manualPaymentAmount" placeholder="5000" min="1" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Concepto</label>
+                                <input type="text" id="manualPaymentConcept" placeholder="Pago en efectivo" value="Pago en efectivo">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Registrar Pago Manual</button>
+                        </form>
+                    </div>
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- Debug Panel -->
+    <div id="debugPanel" class="debug-panel">
+        <div class="debug-header" onclick="DebugPanel.toggle()">
+            <span class="debug-title">🔍 Debug Console</span>
+            <span class="debug-controls">
+                <button class="btn btn-sm" onclick="event.stopPropagation(); DebugPanel.clear()">Limpiar</button>
+                <span class="debug-toggle">▲</span>
+            </span>
+        </div>
+        <div class="debug-content">
+            <div id="debugLogs" class="debug-logs">
+                <div class="debug-empty">Realiza una petición para ver los detalles aquí...</div>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>

@@ -1,807 +1,1826 @@
-// ==================== INICIALIZACIÓN UI ====================
-// Hacer updateLocalStorageDebug global
-function updateLocalStorageDebug() {
-    const debugToken = document.getElementById('debugToken');
-    const debugUserId = document.getElementById('debugUserId');
-    if (debugToken) debugToken.textContent = localStorage.getItem('token') || '(vacío)';
-    if (debugUserId) debugUserId.textContent = localStorage.getItem('userId') || '(vacío)';
-}
+/**
+ * MyGym API Tester
+ * Herramienta completa de testing para el backend de MyGym
+ */
 
-document.addEventListener('DOMContentLoaded', () => {
-    updateLocalStorageDebug();
-    window.addEventListener('storage', updateLocalStorageDebug);
-    document.addEventListener('tokenChanged', updateLocalStorageDebug);
-        // Autocompletar campos userId si existe en localStorage
-        const storedUserId = localStorage.getItem('userId');
-        if (storedUserId) {
-            document.querySelectorAll('input[id*="userId"]').forEach(input => {
-                input.value = storedUserId;
-                input.disabled = true;
-            });
+// ============================================
+// API TESTER - Core Module
+// ============================================
+
+const ApiTester = {
+    config: {
+        baseUrl: 'https://us-central1-mygym-912d1.cloudfunctions.net',
+        token: null,
+        userId: null,
+        userEmail: null,
+        userType: null
+    },
+
+    presets: {
+        prod: 'https://us-central1-mygym-912d1.cloudfunctions.net',
+        local: 'http://localhost:5001/mygym-912d1/us-central1'
+    },
+
+    init() {
+        // Load from localStorage
+        const savedToken = localStorage.getItem('mygym_token');
+        const savedUserId = localStorage.getItem('mygym_userId');
+        const savedEmail = localStorage.getItem('mygym_email');
+        const savedType = localStorage.getItem('mygym_userType');
+        const savedUrl = localStorage.getItem('mygym_baseUrl');
+
+        if (savedToken) {
+            this.config.token = savedToken;
+            this.config.userId = savedUserId;
+            this.config.userEmail = savedEmail;
+            this.config.userType = savedType;
         }
-    // LOGOUT
-    const logoutBtn = document.getElementById('logoutBtn');
-    let openLoginBtn = document.getElementById('openLoginModal');
-    let openRegisterBtn = document.getElementById('openRegisterModal');
-    if (logoutBtn) {
-        const isLogged = !!localStorage.getItem('token');
-        logoutBtn.style.display = isLogged ? '' : 'none';
-        // Ocultar/mostrar botones de login y registro en landing-actions
-        document.querySelectorAll('.landing-actions #openLoginModal, .landing-actions #openRegisterModal').forEach(btn => {
-            btn.style.display = isLogged ? 'none' : '';
-        });
-        // También en la cabecera si existieran
-        if (openLoginBtn) openLoginBtn.style.display = isLogged ? 'none' : '';
-        if (openRegisterBtn) openRegisterBtn.style.display = isLogged ? 'none' : '';
 
-        logoutBtn.onclick = () => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('userId');
-            document.dispatchEvent(new Event('tokenChanged'));
-            location.reload();
-        };
-    }
-
-    // MODALES Y LANDING
-    // Modal Login
-    const loginModal = document.getElementById('loginModal');
-    const closeLoginBtn = document.getElementById('closeLoginModal');
-    if (openLoginBtn && loginModal) openLoginBtn.onclick = () => { loginModal.style.display = 'flex'; };
-    if (closeLoginBtn && loginModal) closeLoginBtn.onclick = () => { loginModal.style.display = 'none'; document.getElementById('loginModalResponse').textContent = ''; };
-
-    // Modal Registro
-    const registerModal = document.getElementById('registerModal');
-    const closeRegisterBtn = document.getElementById('closeRegisterModal');
-    if (openRegisterBtn && registerModal) openRegisterBtn.onclick = () => { registerModal.style.display = 'flex'; };
-    if (closeRegisterBtn && registerModal) closeRegisterBtn.onclick = () => { registerModal.style.display = 'none'; document.getElementById('registerModalResponse').textContent = ''; };
-
-    window.onclick = (e) => {
-        if (e.target === loginModal) loginModal.style.display = 'none';
-        if (e.target === registerModal) registerModal.style.display = 'none';
-    };
-
-    // Login Modal Form (asegura mostrar respuesta)
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            showLoading('loginModalResponse');
-            let result;
-            try {
-                result = await makeRequest('/auth/auth/login', 'POST', { email, password });
-            } catch (err) {
-                console.error('Error en makeRequest login:', err);
-                showResponse('loginModalResponse', { success: false, data: { message: 'Error en login: ' + (err && err.message ? err.message : err) } });
-                return;
+        if (savedUrl) {
+            this.config.baseUrl = savedUrl;
+            document.getElementById('baseUrl').value = savedUrl;
+            // Set correct preset
+            if (savedUrl === this.presets.prod) {
+                document.getElementById('urlPreset').value = 'prod';
+            } else if (savedUrl === this.presets.local) {
+                document.getElementById('urlPreset').value = 'local';
+            } else {
+                document.getElementById('urlPreset').value = 'custom';
             }
-            if (!result || typeof result !== 'object') {
-                console.error('Login result inválido:', result);
-                showResponse('loginModalResponse', { success: false, data: { message: 'Respuesta inválida del servidor' } });
-                return;
-            }
-            const payload = (result.data && result.data.data) ? result.data.data : (result.data || null);
-            // Guardar token y userId si existen
-            if (result.success && payload && payload.token) {
-                localStorage.setItem('token', payload.token);
-                let userId = payload.userId || payload.uid || payload.id || null;
-                if (!userId && payload.user && (payload.user.uid || payload.user.id)) {
-                    userId = payload.user.uid || payload.user.id;
-                }
-                if (userId) {
-                    localStorage.setItem('userId', userId);
-                }
-                // Actualizar debug y notificar cambio de token
-                updateLocalStorageDebug();
-                document.dispatchEvent(new Event('tokenChanged'));
-                // Mostrar el botón de logout inmediatamente
-                const logoutBtn = document.getElementById('logoutBtn');
-                if (logoutBtn) logoutBtn.style.display = '';
-                // Mostrar mensaje de éxito personalizado
-                showResponse('loginModalResponse', { success: true, data: { message: '¡Inicio de sesión exitoso!' } });
-                // Cerrar modal tras un delay más largo para que se vea el mensaje y se actualice el debug
-                setTimeout(() => { loginModal.style.display = 'none'; }, 1800);
-                return;
-            }
-            // Si no hay token pero hay mensaje, mostrar el mensaje
-            if (result.success && result.message) {
-                showResponse('loginModalResponse', { success: true, data: { message: result.message } });
-                return;
-            }
-            // Si no, mostrar la respuesta tal cual
-            showResponse('loginModalResponse', result);
-        };
-    }
+        }
 
-    // Llenar los selects al cargar la página y al agregar ejercicios (rutinas)
-    if (document.getElementById('routineExercises')) {
-        cargarEjerciciosParaRutina();
-        // Al agregar un nuevo ejercicio, volver a poblar el select
-        document.getElementById('addExerciseBtn').addEventListener('click', () => {
-            setTimeout(actualizarSelectsEjercicios, 50);
-        });
-    }
-});
-// ========== PROCESAR PAGO ==========
-const processPaymentForm = document.getElementById('processPaymentForm');
-if (processPaymentForm) {
-    processPaymentForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('processPaymentResponse');
-        const userId = document.getElementById('paymentUserId').value;
-        const amount = Number(document.getElementById('paymentAmount').value);
-        const paymentMethod = document.getElementById('paymentMethod').value;
-        const description = document.getElementById('paymentDescription').value;
-        const body = { userId, amount, paymentMethod, description };
-        let token = localStorage.getItem('token') || null;
-        const result = await makeRequest('/payments/process', 'POST', body, token);
-        showResponse('processPaymentResponse', result);
-    };
-}
-// ========== CREAR INSCRIPCIÓN ==========
-const createRegistrationForm = document.getElementById('createRegistrationForm');
-if (createRegistrationForm) {
-    createRegistrationForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('createRegistrationResponse');
-        const userId = document.getElementById('registrationUserId').value;
-        const gymId = document.getElementById('registrationGymId').value;
-        const membershipType = document.getElementById('registrationMembershipType').value;
-        const startDate = document.getElementById('registrationStartDate').value;
-        const body = { userId, gymId, membershipType, startDate };
-        let token = localStorage.getItem('token') || null;
-        const result = await makeRequest('/registrations', 'POST', body, token);
-        showResponse('createRegistrationResponse', result);
-    };
-}
-// ========== REGISTRAR PROGRESO ==========
-const logProgressForm = document.getElementById('logProgressForm');
-if (logProgressForm) {
-    // Agregar ejercicios dinámicamente
-    document.getElementById('addProgressExerciseBtn').onclick = () => {
-        const container = document.createElement('div');
-        container.className = 'progress-exercise';
-        container.innerHTML = `
-            <select class="exerciseId" required><option value="">Seleccionar ejercicio...</option></select>
-            <input type="number" class="completedSets" placeholder="Sets completados" min="0" required>
-            <input type="number" class="completedReps" placeholder="Reps completadas (opcional)" min="0">
-            <input type="number" class="weight" placeholder="Peso (opcional)">
-            <input type="text" class="notes" placeholder="Notas (opcional)">
-            <button type="button" class="removeProgressExercise">Quitar</button>
-        `;
-        container.querySelector('.removeProgressExercise').onclick = function() { container.remove(); };
-        document.getElementById('progressExercises').appendChild(container);
-        actualizarSelectsEjerciciosProgreso();
-    };
+        this.updateAuthUI();
+        this.initNavigation();
+        this.initUrlInput();
 
-    // Poblar selects de ejercicios
-    function actualizarSelectsEjerciciosProgreso() {
-        document.querySelectorAll('.progress-exercise .exerciseId').forEach(select => {
-            const valorActual = select.value;
-            select.innerHTML = '<option value="">Seleccionar ejercicio...</option>';
-            ejerciciosDisponibles.forEach(ej => {
-                const nombre = ej.nombre || ej.name || ej.id || ej._id;
-                const id = ej._id || ej.id || ej.exerciseId || '';
-                if (id) {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = nombre + ' (' + id + ')';
-                    if (valorActual === id) option.selected = true;
-                    select.appendChild(option);
-                }
+        console.log('🚀 MyGym API Tester initialized');
+    },
+
+    initNavigation() {
+        const links = document.querySelectorAll('.sidebar-link');
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const sectionId = link.dataset.section;
+                
+                // Update active link
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                
+                // Show section
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                document.getElementById(sectionId).classList.add('active');
             });
         });
-    }
-    // Llenar los selects al cargar la página y al agregar ejercicios
-    actualizarSelectsEjerciciosProgreso();
-    // Enlazar también a la carga global de ejercicios
-    document.addEventListener('ejerciciosCargados', actualizarSelectsEjerciciosProgreso);
+    },
 
-    logProgressForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('logProgressResponse');
-        const date = document.getElementById('progressDate').value;
-        const notes = document.getElementById('progressNotes').value;
-        const exercises = [];
-        document.querySelectorAll('#progressExercises .progress-exercise').forEach(div => {
-            const exerciseId = div.querySelector('.exerciseId').value;
-            const completedSets = div.querySelector('.completedSets').value;
-            const completedReps = div.querySelector('.completedReps').value;
-            const weight = div.querySelector('.weight').value;
-            const notesEj = div.querySelector('.notes').value;
-            if (exerciseId && completedSets) {
-                const ej = {
-                    exerciseId,
-                    completedSets: Number(completedSets)
-                };
-                if (completedReps) ej.completedReps = Number(completedReps);
-                if (weight) ej.weight = Number(weight);
-                if (notesEj) ej.notes = notesEj;
-                exercises.push(ej);
-            }
+    initUrlInput() {
+        const input = document.getElementById('baseUrl');
+        input.addEventListener('change', () => {
+            this.config.baseUrl = input.value.trim().replace(/\/$/, '');
+            localStorage.setItem('mygym_baseUrl', this.config.baseUrl);
         });
-        const body = { exercises };
-        if (date) body.date = date;
-        if (notes) body.notes = notes;
-        // Token si existe
-        let token = localStorage.getItem('token') || null;
-        const result = await makeRequest('/routines/progress', 'POST', body, token);
-        showResponse('logProgressResponse', result);
-    };
-}
-// ========== OBTENER Y MAPEAR EJERCICIOS PARA RUTINAS ==========
-let ejerciciosDisponibles = [];
-async function cargarEjerciciosParaRutina() {
-    // Solo llamar si hay token (usuario logueado)
-    let token = localStorage.getItem('token');
-    if (!token) {
-        ejerciciosDisponibles = [];
-        actualizarSelectsEjercicios();
-        return;
-    }
-    let result;
-    try {
-        result = await makeRequest('/exercises', 'GET', null, token);
-    } catch (e) {
-        ejerciciosDisponibles = [];
-        actualizarSelectsEjercicios();
-        return;
-    }
-    if (result && result.success && Array.isArray(result.data)) {
-        ejerciciosDisponibles = result.data;
-    } else if (result && result.success && result.data && Array.isArray(result.data.ejercicios)) {
-        ejerciciosDisponibles = result.data.ejercicios;
-    } else {
-        ejerciciosDisponibles = [];
-    }
-    actualizarSelectsEjercicios();
-}
+    },
 
-function actualizarSelectsEjercicios() {
-    document.querySelectorAll('.routine-exercise .exerciseId').forEach(select => {
-        const valorActual = select.value;
-        select.innerHTML = '<option value="">Seleccionar ejercicio...</option>';
-        ejerciciosDisponibles.forEach(ej => {
-            const nombre = ej.nombre || ej.name || ej.id || ej._id;
-            const id = ej._id || ej.id || ej.exerciseId || '';
-            if (id) {
-                const option = document.createElement('option');
-                option.value = id;
-                option.textContent = nombre + ' (' + id + ')';
-                if (valorActual === id) option.selected = true;
-                select.appendChild(option);
-            }
-        });
-    });
-}
+    setUrlPreset(preset) {
+        const input = document.getElementById('baseUrl');
+        if (preset === 'prod') {
+            this.config.baseUrl = this.presets.prod;
+            input.value = this.presets.prod;
+            input.disabled = true;
+        } else if (preset === 'local') {
+            this.config.baseUrl = this.presets.local;
+            input.value = this.presets.local;
+            input.disabled = true;
+        } else {
+            input.disabled = false;
+            input.focus();
+        }
+        localStorage.setItem('mygym_baseUrl', this.config.baseUrl);
+    },
 
-// Llenar los selects al cargar la página y al agregar ejercicios
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('routineExercises')) {
-        cargarEjerciciosParaRutina();
-        // Al agregar un nuevo ejercicio, volver a poblar el select
-        document.getElementById('addExerciseBtn').addEventListener('click', () => {
-            setTimeout(actualizarSelectsEjercicios, 50);
-        });
-    }
-});
-// ========== CREAR RUTINA ==========
-const createRoutineForm = document.getElementById('createRoutineForm');
-if (createRoutineForm) {
-    // Agregar ejercicios dinámicamente
-    document.getElementById('addExerciseBtn').onclick = () => {
-        const container = document.createElement('div');
-        container.className = 'routine-exercise';
-        container.innerHTML = `
-            <select class="exerciseId" required><option value="">Seleccionar ejercicio...</option></select>
-            <input type="number" class="sets" placeholder="Sets" min="1" required>
-            <input type="number" class="reps" placeholder="Reps" min="1" required>
-            <input type="number" class="weight" placeholder="Peso (opcional)">
-            <input type="text" class="notes" placeholder="Notas (opcional)">
-            <button type="button" class="removeExercise">Quitar</button>
-        `;
-        container.querySelector('.removeExercise').onclick = function() { container.remove(); };
-        document.getElementById('routineExercises').appendChild(container);
-        actualizarSelectsEjercicios();
-    };
+    setAuth(token, userData = {}) {
+        this.config.token = token;
+        this.config.userId = userData.userId || userData.uid || userData.id;
+        this.config.userEmail = userData.email;
+        this.config.userType = userData.userType || userData.role;
 
-    createRoutineForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('createRoutineResponse');
-        const nombre = document.getElementById('routineNombre').value;
-        const descripcion = document.getElementById('routineDescripcion').value;
-        const ejercicios = [];
-        document.querySelectorAll('#routineExercises .routine-exercise').forEach(div => {
-            const exerciseId = div.querySelector('.exerciseId').value;
-            const sets = div.querySelector('.sets').value;
-            const reps = div.querySelector('.reps').value;
-            const weight = div.querySelector('.weight').value;
-            const notes = div.querySelector('.notes').value;
-            if (exerciseId && sets && reps) {
-                const ej = {
-                    exerciseId,
-                    sets: Number(sets),
-                    reps: Number(reps)
-                };
-                if (weight) ej.weight = Number(weight);
-                if (notes) ej.notes = notes;
-                ejercicios.push(ej);
-            }
-        });
-        const body = { nombre, ejercicios };
-        if (descripcion) body.descripcion = descripcion;
-        const result = await makeRequest('/routines/create', 'POST', body);
-        showResponse('createRoutineResponse', result);
-    };
-}
-// ========== MODALES Y LANDING ==========
-// ==================== HELPERS ====================
+        localStorage.setItem('mygym_token', token);
+        if (this.config.userId) localStorage.setItem('mygym_userId', this.config.userId);
+        if (this.config.userEmail) localStorage.setItem('mygym_email', this.config.userEmail);
+        if (this.config.userType) localStorage.setItem('mygym_userType', this.config.userType);
 
-async function makeRequest(endpoint, method = 'GET', body = null, token = null) {
-    const baseUrl = document.getElementById('baseUrl').value.trim();
-    const url = `${baseUrl}${endpoint}`;
-    const options = {
-        method,
-        headers: {
+        this.updateAuthUI();
+        Toast.success('Sesión iniciada correctamente');
+    },
+
+    logout() {
+        this.config.token = null;
+        this.config.userId = null;
+        this.config.userEmail = null;
+        this.config.userType = null;
+
+        localStorage.removeItem('mygym_token');
+        localStorage.removeItem('mygym_userId');
+        localStorage.removeItem('mygym_email');
+        localStorage.removeItem('mygym_userType');
+
+        this.updateAuthUI();
+        Toast.info('Sesión cerrada');
+    },
+
+    updateAuthUI() {
+        const statusEl = document.getElementById('authStatus');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const dot = statusEl.querySelector('.status-dot');
+        const text = statusEl.querySelector('.status-text');
+
+        if (this.config.token) {
+            dot.classList.remove('offline');
+            dot.classList.add('online');
+            const role = this.config.userType ? ` (${this.config.userType})` : '';
+            text.textContent = `${this.config.userEmail || 'Usuario'}${role}`;
+            logoutBtn.style.display = 'block';
+        } else {
+            dot.classList.remove('online');
+            dot.classList.add('offline');
+            text.textContent = 'No autenticado';
+            logoutBtn.style.display = 'none';
+        }
+    },
+
+    async request(method, endpoint, body = null, options = {}) {
+        const startTime = performance.now();
+        const url = `${this.config.baseUrl}${endpoint}`;
+        
+        const headers = {
             'Content-Type': 'application/json'
+        };
+
+        // Add auth header unless explicitly skipped
+        if (!options.skipAuth && this.config.token) {
+            headers['Authorization'] = `Bearer ${this.config.token}`;
         }
-    };
-    // Si no se pasa token explícito, buscar en localStorage
-    if (!token) {
-        token = localStorage.getItem('token') || null;
-    }
-    if (token) {
-        options.headers['Authorization'] = `Bearer ${token}`;
-    }
-    if (body) {
-        options.body = JSON.stringify(body);
-    }
-    try {
-        const response = await fetch(url, options);
-        let data;
+
+        const fetchOptions = {
+            method,
+            headers
+        };
+
+        if (body && method !== 'GET') {
+            fetchOptions.body = JSON.stringify(body);
+        }
+
+        let response, data, error = null;
+
         try {
-            data = await response.json();
-        } catch (jsonErr) {
-            // Si la respuesta no es JSON válida
-            data = { message: 'Respuesta no es JSON válida', raw: await response.text() };
-        }
-        // Log para depuración
-        console.log('makeRequest', { url, options, responseStatus: response.status, data });
-        return { success: response.ok, data, status: response.status };
-    } catch (error) {
-        console.error('makeRequest error:', error);
-        return { success: false, data: { message: error.message }, status: 0 };
-    }
-}
-
-function showResponse(elementId, result) {
-    const element = document.getElementById(elementId);
-    element.className = 'response';
-    // Log para depuración
-    console.log('showResponse', { elementId, result });
-    if (!result || typeof result !== 'object') {
-        element.classList.add('error');
-        element.textContent = 'Error: respuesta inválida';
-        return;
-    }
-    // Protección extra: si result.success es undefined, mostrar error genérico
-    if (typeof result.success === 'undefined') {
-        element.classList.add('error');
-        element.textContent = 'Error: respuesta sin campo success';
-        return;
-    }
-    if (result.success) {
-        element.classList.add('success');
-    } else {
-        element.classList.add('error');
-    }
-    element.textContent = JSON.stringify(result.data, null, 2);
-}
-
-function showLoading(elementId) {
-    const element = document.getElementById(elementId);
-    element.className = 'response loading';
-    element.textContent = '⏳ Cargando...';
-}
-
-// ==================== AUTH ====================
-
-
-// Nuevo login con inputs
-const loginSectionForm = document.getElementById('loginSectionForm');
-if (loginSectionForm) {
-    loginSectionForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('loginResponse');
-        const body = {
-            email: document.getElementById('loginSectionEmail').value,
-            password: document.getElementById('loginSectionPassword').value
-        };
-        const result = await makeRequest('/auth/auth/login', 'POST', body);
-        showResponse('loginResponse', result);
-        // Guardar token si login exitoso
-        if (result.success && result.data && result.data.token) {
-            localStorage.setItem('token', result.data.token);
-            // Guardar userId si viene en la respuesta
-            let userId = null;
-            if (result.data.userId || result.data.uid || result.data.id) {
-                userId = result.data.userId || result.data.uid || result.data.id;
-            } else if (result.data.user && result.data.user.uid) {
-                userId = result.data.user.uid;
+            response = await fetch(url, fetchOptions);
+            
+            try {
+                data = await response.json();
+            } catch (e) {
+                data = { message: 'Response is not valid JSON' };
             }
-            if (userId) {
-                localStorage.setItem('userId', userId);
-            }
-            document.dispatchEvent(new Event('tokenChanged'));
+        } catch (e) {
+            error = e;
+            data = { message: e.message };
         }
-    };
-}
 
+        const duration = Math.round(performance.now() - startTime);
 
-// Nuevo recuperar contraseña con inputs
-const forgotPasswordForm = document.getElementById('forgotPasswordForm');
-if (forgotPasswordForm) {
-    forgotPasswordForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('forgotPasswordResponse');
-        const body = {
-            email: document.getElementById('forgotPasswordEmail').value
+        // Log to debug panel
+        DebugPanel.log({
+            method,
+            url,
+            headers,
+            body,
+            status: response?.status || 0,
+            statusText: response?.statusText || error?.message || 'Network Error',
+            response: data,
+            duration,
+            success: response?.ok || false
+        });
+
+        return {
+            success: response?.ok || false,
+            status: response?.status || 0,
+            data
         };
-        const result = await makeRequest('/auth/auth/forgot-password', 'POST', body);
-        showResponse('forgotPasswordResponse', result);
-    };
-}
-
-// ==================== USUARIOS ====================
-
-
-// Nuevo registro de usuario con inputs
-const createUserForm = document.getElementById('createUserForm');
-if (createUserForm) {
-    createUserForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('createUserResponse');
-        const body = {
-            email: document.getElementById('userEmail').value,
-            password: document.getElementById('userPassword').value,
-            name: document.getElementById('userName').value,
-            dni: document.getElementById('userDni').value,
-            birthDate: document.getElementById('userBirthDate').value,
-            gender: document.getElementById('userGender').value,
-            phone: document.getElementById('userPhone').value,
-            weight: Number(document.getElementById('userWeight').value),
-            height: Number(document.getElementById('userHeight').value)
-        };
-        const result = await makeRequest('/users/auth/register/client', 'POST', body);
-        showResponse('createUserResponse', result);
-    };
-}
-
-// ==================== GIMNASIOS ====================
-
-
-// Nuevo registro de gimnasio con inputs
-const registerGymForm = document.getElementById('registerGymForm');
-if (registerGymForm) {
-    registerGymForm.onsubmit = async (e) => {
-        e.preventDefault();
-        showLoading('registerGymResponse');
-        const body = {
-            name: document.getElementById('gymName').value,
-            address: document.getElementById('gymAddress').value,
-            phone: document.getElementById('gymPhone').value,
-            email: document.getElementById('gymEmail').value,
-            ownerEmail: document.getElementById('gymOwnerEmail').value,
-            ownerPassword: document.getElementById('gymOwnerPassword').value
-        };
-        const result = await makeRequest('/gyms/auth/register/gym', 'POST', body);
-        showResponse('registerGymResponse', result);
-    };
-}
-
-async function getAllGyms() {
-    showLoading('getAllGymsResponse');
-    const result = await makeRequest('/gyms/gyms', 'GET');
-    showResponse('getAllGymsResponse', result);
-}
-
-async function getGym() {
-    const gymId = document.getElementById('getGymId').value.trim();
-    if (!gymId) {
-        showResponse('getGymResponse', { success: false, data: { message: 'gymId es requerido' } });
-        return;
     }
-    showLoading('getGymResponse');
-    const result = await makeRequest(`/gyms/gyms/${gymId}`, 'GET');
-    showResponse('getGymResponse', result);
-}
+};
 
-// ==================== EJERCICIOS ====================
+// ============================================
+// DEBUG PANEL
+// ============================================
 
+const DebugPanel = {
+    isCollapsed: false,
 
-// Nuevo registro de ejercicio con inputs
-const createExerciseForm = document.getElementById('createExerciseForm');
-if (createExerciseForm) {
-    createExerciseForm.onsubmit = async (e) => {
+    toggle() {
+        const panel = document.getElementById('debugPanel');
+        this.isCollapsed = !this.isCollapsed;
+        panel.classList.toggle('collapsed', this.isCollapsed);
+    },
+
+    clear() {
+        const logs = document.getElementById('debugLogs');
+        logs.innerHTML = '<div class="debug-empty">Realiza una petición para ver los detalles aquí...</div>';
+    },
+
+    log(entry) {
+        const logs = document.getElementById('debugLogs');
+        
+        // Remove empty message if present
+        const empty = logs.querySelector('.debug-empty');
+        if (empty) empty.remove();
+
+        const timestamp = new Date().toLocaleTimeString();
+        const statusClass = entry.success ? 'success' : (entry.status >= 400 ? 'error' : 'warning');
+
+        const html = `
+            <div class="debug-entry">
+                <div class="debug-entry-header">
+                    <span class="method ${entry.method.toLowerCase()}">${entry.method}</span>
+                    <span class="debug-timestamp">${timestamp}</span>
+                    <span class="debug-duration">${entry.duration}ms</span>
+                    <span class="debug-status ${statusClass}">${entry.status} ${entry.statusText}</span>
+                </div>
+                
+                <div class="debug-request">
+                    <span class="debug-label">Request</span>
+                    <div class="debug-url">
+                        <code>${entry.url}</code>
+                    </div>
+                    ${entry.body ? `
+                        <div class="debug-label">Body</div>
+                        <pre class="debug-pre">${this.formatJSON(entry.body)}</pre>
+                    ` : ''}
+                    <div class="debug-label">Headers</div>
+                    <pre class="debug-pre">${this.formatJSON(entry.headers)}</pre>
+                </div>
+                
+                <div class="debug-response">
+                    <span class="debug-label">Response</span>
+                    <pre class="debug-pre">${this.formatJSON(entry.response)}</pre>
+                </div>
+            </div>
+        `;
+
+        logs.insertAdjacentHTML('afterbegin', html);
+
+        // Expand panel if collapsed
+        if (this.isCollapsed) {
+            this.toggle();
+        }
+    },
+
+    formatJSON(obj) {
+        if (!obj) return 'null';
+        const json = JSON.stringify(obj, null, 2);
+        return json
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+            .replace(/: "([^"]*)"/g, ': <span class="json-string">"$1"</span>')
+            .replace(/: (\d+)/g, ': <span class="json-number">$1</span>')
+            .replace(/: (true|false)/g, ': <span class="json-boolean">$1</span>')
+            .replace(/: (null)/g, ': <span class="json-null">$1</span>');
+    }
+};
+
+// ============================================
+// TOAST NOTIFICATIONS
+// ============================================
+
+const Toast = {
+    container: null,
+
+    init() {
+        this.container = document.createElement('div');
+        this.container.className = 'toast-container';
+        document.body.appendChild(this.container);
+    },
+
+    show(message, type = 'info') {
+        if (!this.container) this.init();
+        
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        this.container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    },
+
+    success(msg) { this.show(msg, 'success'); },
+    error(msg) { this.show(msg, 'error'); },
+    info(msg) { this.show(msg, 'info'); }
+};
+
+// ============================================
+// SMART SELECTORS
+// ============================================
+
+const SmartSelectors = {
+    cache: {
+        gyms: [],
+        exercises: [],
+        classes: [],
+        clients: {}
+    },
+
+    async loadGyms(selectId) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Cargando...</option>';
+        
+        const result = await ApiTester.request('GET', '/gyms/gyms', null, { skipAuth: true });
+        
+        if (result.success && result.data?.data) {
+            this.cache.gyms = Array.isArray(result.data.data) ? result.data.data : [];
+            this.populateSelect(select, this.cache.gyms, 'uid', 'businessName');
+            Toast.success(`${this.cache.gyms.length} gimnasios cargados`);
+        } else {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar gimnasios');
+        }
+    },
+
+    async loadClients(gymSelectId, clientSelectId) {
+        const gymSelect = document.getElementById(gymSelectId);
+        const clientSelect = document.getElementById(clientSelectId);
+        const gymId = gymSelect.value;
+        
+        if (!gymId) {
+            Toast.error('Selecciona un gimnasio primero');
+            return;
+        }
+        
+        clientSelect.innerHTML = '<option value="">Cargando...</option>';
+        
+        const result = await ApiTester.request('GET', `/gyms/gyms/${gymId}/clients`);
+        
+        if (result.success && result.data?.data) {
+            const clients = Array.isArray(result.data.data) ? result.data.data : [];
+            this.cache.clients[gymId] = clients;
+            this.populateSelect(clientSelect, clients, 'uid', 'name', 'email');
+            Toast.success(`${clients.length} clientes cargados`);
+        } else {
+            clientSelect.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar clientes');
+        }
+    },
+
+    async loadExercises(selectId) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Cargando...</option>';
+        
+        const result = await ApiTester.request('GET', '/exercises/');
+        
+        if (result.success && result.data?.data) {
+            this.cache.exercises = Array.isArray(result.data.data) ? result.data.data : [];
+            this.populateSelect(select, this.cache.exercises, 'id', 'nombre', 'categoria');
+            Toast.success(`${this.cache.exercises.length} ejercicios cargados`);
+        } else {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar ejercicios');
+        }
+    },
+
+    async loadClasses(selectId) {
+        const select = document.getElementById(selectId);
+        select.innerHTML = '<option value="">Cargando...</option>';
+        
+        const result = await ApiTester.request('GET', '/classes/');
+        
+        if (result.success && result.data?.data) {
+            this.cache.classes = Array.isArray(result.data.data) ? result.data.data : [];
+            this.populateSelect(select, this.cache.classes, 'id', 'nombre');
+            Toast.success(`${this.cache.classes.length} clases cargadas`);
+        } else {
+            select.innerHTML = '<option value="">Error al cargar</option>';
+            Toast.error('Error al cargar clases');
+        }
+    },
+
+    populateSelect(select, items, valueKey, labelKey, subtitleKey = null) {
+        select.innerHTML = '<option value="">Seleccionar...</option>';
+        items.forEach(item => {
+            const value = item[valueKey] || item.id || item._id || item.uid;
+            const label = item[labelKey] || item.name || item.nombre || value;
+            const subtitle = subtitleKey && item[subtitleKey] ? ` (${item[subtitleKey]})` : '';
+            
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = `${label}${subtitle}`;
+            select.appendChild(option);
+        });
+    }
+};
+
+// ============================================
+// AUTH MODULE
+// ============================================
+
+const AuthModule = {
+    async login(e) {
         e.preventDefault();
-        showLoading('createExerciseResponse');
-        const nombre = document.getElementById('exerciseNombre').value;
+        
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        const result = await ApiTester.request('POST', '/auth/auth/login', { email, password }, { skipAuth: true });
+        
+        if (result.success && result.data?.data?.token) {
+            const data = result.data.data;
+            ApiTester.setAuth(data.token, {
+                userId: data.userId || data.uid,
+                email: data.email || email,
+                userType: data.userType || data.role
+            });
+        } else {
+            Toast.error(result.data?.message || 'Error en login');
+        }
+    },
+
+    async forgotPassword(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('forgotEmail').value;
+        const result = await ApiTester.request('POST', '/auth/auth/forgot-password', { email }, { skipAuth: true });
+        
+        if (result.success) {
+            Toast.success('Email de recuperación enviado');
+        } else {
+            Toast.error(result.data?.message || 'Error al enviar email');
+        }
+    },
+
+    async resetPassword(e) {
+        e.preventDefault();
+        
+        const oobCode = document.getElementById('resetOobCode').value;
+        const newPassword = document.getElementById('resetNewPassword').value;
+        
+        const result = await ApiTester.request('POST', '/auth/auth/reset-password', { oobCode, newPassword }, { skipAuth: true });
+        
+        if (result.success) {
+            Toast.success('Contraseña restablecida');
+        } else {
+            Toast.error(result.data?.message || 'Error al restablecer');
+        }
+    }
+};
+
+// ============================================
+// USERS MODULE
+// ============================================
+
+const UsersModule = {
+    async registerClient(e) {
+        e.preventDefault();
+        
+        const body = {
+            email: document.getElementById('regClientEmail').value,
+            password: document.getElementById('regClientPassword').value,
+            name: document.getElementById('regClientName').value,
+            dni: document.getElementById('regClientDni').value,
+            birthDate: document.getElementById('regClientBirthDate').value,
+            gymId: document.getElementById('regClientGymId').value
+        };
+
+        // Optional fields
+        const gender = document.getElementById('regClientGender').value;
+        const phone = document.getElementById('regClientPhone').value;
+        const weight = document.getElementById('regClientWeight').value;
+        const height = document.getElementById('regClientHeight').value;
+        
+        if (gender) body.gender = gender;
+        if (phone) body.phone = phone;
+        if (weight) body.weight = Number(weight);
+        if (height) body.height = Number(height);
+        
+        const result = await ApiTester.request('POST', '/users/auth/register/client', body, { skipAuth: true });
+        
+        if (result.success) {
+            Toast.success('Cliente registrado exitosamente');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error en registro');
+        }
+    },
+
+    async getMe() {
+        const result = await ApiTester.request('GET', '/users/users/me');
+        
+        if (result.success) {
+            Toast.success('Perfil obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener perfil');
+        }
+    },
+
+    async updateMe(e) {
+        e.preventDefault();
+        
+        const body = {};
+        
+        const name = document.getElementById('updateName').value;
+        const phone = document.getElementById('updatePhone').value;
+        const gender = document.getElementById('updateGender').value;
+        const avatarUri = document.getElementById('updateAvatarUri').value;
+        const weight = document.getElementById('updateWeight').value;
+        const height = document.getElementById('updateHeight').value;
+        
+        if (name) body.name = name;
+        if (phone) body.phone = phone;
+        if (gender) body.gender = gender;
+        if (avatarUri) body.avatarUri = avatarUri;
+        if (weight) body.weight = Number(weight);
+        if (height) body.height = Number(height);
+        
+        if (Object.keys(body).length === 0) {
+            Toast.error('Ingresa al menos un campo para actualizar');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', '/users/users/me', body);
+        
+        if (result.success) {
+            Toast.success('Perfil actualizado');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async changePassword(e) {
+        e.preventDefault();
+        
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        
+        const result = await ApiTester.request('PUT', '/users/users/me/password', { currentPassword, newPassword });
+        
+        if (result.success) {
+            Toast.success('Contraseña actualizada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al cambiar contraseña');
+        }
+    }
+};
+
+// ============================================
+// GYMS MODULE
+// ============================================
+
+const GymsModule = {
+    async registerGym(e) {
+        e.preventDefault();
+        
+        const body = {
+            email: document.getElementById('regGymEmail').value,
+            password: document.getElementById('regGymPassword').value,
+            businessName: document.getElementById('regGymBusinessName').value,
+            address: document.getElementById('regGymAddress').value
+        };
+        
+        const phone = document.getElementById('regGymPhone').value;
+        const avatarUri = document.getElementById('regGymAvatarUri').value;
+        
+        if (phone) body.phone = phone;
+        if (avatarUri) body.avatarUri = avatarUri;
+        
+        const result = await ApiTester.request('POST', '/gyms/auth/register/gym', body, { skipAuth: true });
+        
+        if (result.success) {
+            Toast.success('Gimnasio registrado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error en registro');
+        }
+    },
+
+    async getAllGyms() {
+        const result = await ApiTester.request('GET', '/gyms/gyms', null, { skipAuth: true });
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} gimnasios encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al listar');
+        }
+    },
+
+    async getGymById() {
+        const gymId = document.getElementById('getGymId').value;
+        
+        if (!gymId) {
+            Toast.error('Selecciona un gimnasio');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/gyms/gyms/${gymId}`);
+        
+        if (result.success) {
+            Toast.success('Gimnasio obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async updateGymMe(e) {
+        e.preventDefault();
+        
+        const body = {};
+        
+        const businessName = document.getElementById('updateGymBusinessName').value;
+        const address = document.getElementById('updateGymAddress').value;
+        const phone = document.getElementById('updateGymPhone').value;
+        const avatarUri = document.getElementById('updateGymAvatarUri').value;
+        
+        if (businessName) body.businessName = businessName;
+        if (address) body.address = address;
+        if (phone) body.phone = phone;
+        if (avatarUri) body.avatarUri = avatarUri;
+        
+        if (Object.keys(body).length === 0) {
+            Toast.error('Ingresa al menos un campo');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', '/gyms/gyms/me', body);
+        
+        if (result.success) {
+            Toast.success('Gimnasio actualizado');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async getGymStats() {
+        const gymId = document.getElementById('statsGymId').value;
+        
+        if (!gymId) {
+            Toast.error('Selecciona un gimnasio');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/gyms/gyms/${gymId}/stats`);
+        
+        if (result.success) {
+            Toast.success('Estadísticas obtenidas');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener estadísticas');
+        }
+    },
+
+    async addClientManually(e) {
+        e.preventDefault();
+        
+        const gymId = document.getElementById('addClientGymId').value;
+        const body = {
+            email: document.getElementById('manualClientEmail').value,
+            name: document.getElementById('manualClientName').value,
+            dni: document.getElementById('manualClientDni').value,
+            birthDate: document.getElementById('manualClientBirthDate').value
+        };
+        
+        const result = await ApiTester.request('POST', `/gyms/gyms/${gymId}/clients`, body);
+        
+        if (result.success) {
+            Toast.success('Cliente registrado manualmente');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al registrar');
+        }
+    },
+
+    async getGymClients() {
+        const gymId = document.getElementById('listClientsGymId').value;
+        const status = document.getElementById('listClientsStatus').value;
+        
+        if (!gymId) {
+            Toast.error('Selecciona un gimnasio');
+            return;
+        }
+        
+        let endpoint = `/gyms/gyms/${gymId}/clients`;
+        if (status) endpoint += `?status=${status}`;
+        
+        const result = await ApiTester.request('GET', endpoint);
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} clientes encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al listar');
+        }
+    },
+
+    async deactivateClient() {
+        const gymId = document.getElementById('deactivateClientGymId').value;
+        const clientId = document.getElementById('deactivateClientId').value;
+        
+        if (!gymId || !clientId) {
+            Toast.error('Selecciona gimnasio y cliente');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/gyms/gyms/${gymId}/clients/${clientId}`);
+        
+        if (result.success) {
+            Toast.success('Cliente dado de baja');
+        } else {
+            Toast.error(result.data?.message || 'Error al dar de baja');
+        }
+    },
+
+    async activateClient() {
+        const gymId = document.getElementById('activateClientGymId').value;
+        const clientId = document.getElementById('activateClientId').value;
+        
+        if (!gymId || !clientId) {
+            Toast.error('Selecciona gimnasio y cliente');
+            return;
+        }
+        
+        const result = await ApiTester.request('PATCH', `/gyms/gyms/${gymId}/clients/${clientId}/activate`);
+        
+        if (result.success) {
+            Toast.success('Cliente reactivado');
+        } else {
+            Toast.error(result.data?.message || 'Error al reactivar');
+        }
+    }
+};
+
+// ============================================
+// CLASSES MODULE
+// ============================================
+
+const ClassesModule = {
+    async getCategories() {
+        const result = await ApiTester.request('GET', '/classes/categories');
+        
+        if (result.success) {
+            Toast.success('Categorías obtenidas');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async createCategory(e) {
+        e.preventDefault();
+        
+        const body = {
+            name: document.getElementById('categoryName').value
+        };
+        
+        const description = document.getElementById('categoryDescription').value;
+        if (description) body.description = description;
+        
+        const result = await ApiTester.request('POST', '/classes/categories', body);
+        
+        if (result.success) {
+            Toast.success('Categoría creada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al crear');
+        }
+    },
+
+    async getAllClasses() {
+        const active = document.getElementById('classesActiveFilter').value;
+        let endpoint = '/classes/';
+        if (active) endpoint += `?active=${active}`;
+        
+        const result = await ApiTester.request('GET', endpoint);
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} clases encontradas`);
+        } else {
+            Toast.error(result.data?.message || 'Error al listar');
+        }
+    },
+
+    async createClass(e) {
+        e.preventDefault();
+        
+        let diasHorarios;
+        try {
+            diasHorarios = JSON.parse(document.getElementById('classDiasHorarios').value);
+        } catch (err) {
+            Toast.error('JSON de horarios inválido');
+            return;
+        }
+        
+        const body = {
+            nombre: document.getElementById('className').value,
+            cupoMaximo: Number(document.getElementById('classCupoMaximo').value),
+            diasHorarios
+        };
+        
+        const descripcion = document.getElementById('classDescripcion').value;
+        const imagen = document.getElementById('classImagen').value;
+        const categoriaId = document.getElementById('classCategoriaId').value;
+        
+        if (descripcion) body.descripcion = descripcion;
+        if (imagen) body.imagen = imagen;
+        if (categoriaId) body.categoriaId = categoriaId;
+        
+        const result = await ApiTester.request('POST', '/classes/', body);
+        
+        if (result.success) {
+            Toast.success('Clase creada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al crear');
+        }
+    },
+
+    async getClassById() {
+        const id = document.getElementById('getClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/classes/${id}`);
+        
+        if (result.success) {
+            Toast.success('Clase obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async updateClass(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('updateClassId').value;
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const body = {};
+        
+        const nombre = document.getElementById('updateClassName').value;
+        const cupoMaximo = document.getElementById('updateClassCupo').value;
+        const descripcion = document.getElementById('updateClassDescripcion').value;
+        
+        if (nombre) body.nombre = nombre;
+        if (cupoMaximo) body.cupoMaximo = Number(cupoMaximo);
+        if (descripcion) body.descripcion = descripcion;
+        
+        if (Object.keys(body).length === 0) {
+            Toast.error('Ingresa al menos un campo');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', `/classes/${id}`, body);
+        
+        if (result.success) {
+            Toast.success('Clase actualizada');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async deleteClass() {
+        const id = document.getElementById('deleteClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/classes/${id}`);
+        
+        if (result.success) {
+            Toast.success('Clase archivada');
+        } else {
+            Toast.error(result.data?.message || 'Error al archivar');
+        }
+    },
+
+    async toggleStatus() {
+        const id = document.getElementById('toggleStatusClassId').value;
+        const activa = document.getElementById('toggleStatusValue').value === 'true';
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('PATCH', `/classes/${id}/status`, { activa });
+        
+        if (result.success) {
+            Toast.success(`Clase ${activa ? 'activada' : 'desactivada'}`);
+        } else {
+            Toast.error(result.data?.message || 'Error al cambiar estado');
+        }
+    },
+
+    async getSchedule() {
+        const id = document.getElementById('getScheduleClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/classes/${id}/schedule`);
+        
+        if (result.success) {
+            Toast.success('Horarios obtenidos');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async updateSchedule(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('updateScheduleClassId').value;
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        let body;
+        try {
+            body = JSON.parse(document.getElementById('updateScheduleData').value);
+        } catch (err) {
+            Toast.error('JSON inválido');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', `/classes/${id}/schedule`, body);
+        
+        if (result.success) {
+            Toast.success('Horarios actualizados');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async updateImage(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('updateImageClassId').value;
+        const imageUrl = document.getElementById('updateImageUrl').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', `/classes/${id}/image`, { imageUrl });
+        
+        if (result.success) {
+            Toast.success('Imagen actualizada');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async getStats() {
+        const id = document.getElementById('statsClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        let endpoint = `/classes/${id}/stats`;
+        const params = [];
+        
+        const startDate = document.getElementById('statsStartDate').value;
+        const endDate = document.getElementById('statsEndDate').value;
+        
+        if (startDate) params.push(`startDate=${startDate}`);
+        if (endDate) params.push(`endDate=${endDate}`);
+        
+        if (params.length) endpoint += `?${params.join('&')}`;
+        
+        const result = await ApiTester.request('GET', endpoint);
+        
+        if (result.success) {
+            Toast.success('Estadísticas obtenidas');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getWaitlist() {
+        const id = document.getElementById('getWaitlistClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/classes/${id}/waitlist`);
+        
+        if (result.success) {
+            Toast.success('Lista de espera obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async joinWaitlist() {
+        const id = document.getElementById('joinWaitlistClassId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        const result = await ApiTester.request('POST', `/classes/${id}/waitlist`);
+        
+        if (result.success) {
+            Toast.success('Agregado a lista de espera');
+        } else {
+            Toast.error(result.data?.message || 'Error al agregar');
+        }
+    },
+
+    async leaveWaitlist() {
+        const id = document.getElementById('leaveWaitlistClassId').value;
+        let userId = document.getElementById('leaveWaitlistUserId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona una clase');
+            return;
+        }
+        
+        // If no userId provided, use current user
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/classes/${id}/waitlist/${userId}`);
+        
+        if (result.success) {
+            Toast.success('Removido de lista de espera');
+        } else {
+            Toast.error(result.data?.message || 'Error al remover');
+        }
+    }
+};
+
+// ============================================
+// EXERCISES MODULE
+// ============================================
+
+const ExercisesModule = {
+    async getAllExercises() {
+        const result = await ApiTester.request('GET', '/exercises/');
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} ejercicios encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al listar');
+        }
+    },
+
+    async createExercise(e) {
+        e.preventDefault();
+        
+        const body = {
+            nombre: document.getElementById('exerciseNombre').value,
+            categoria: document.getElementById('exerciseCategoria').value
+        };
+        
         const descripcion = document.getElementById('exerciseDescripcion').value;
-        const categoria = document.getElementById('exerciseCategoria').value;
         const grupoMuscular = document.getElementById('exerciseGrupoMuscular').value;
         const equipamiento = document.getElementById('exerciseEquipamiento').value;
         const videoUrl = document.getElementById('exerciseVideoUrl').value;
         const imagenUrl = document.getElementById('exerciseImagenUrl').value;
         const instrucciones = document.getElementById('exerciseInstrucciones').value;
-        const body = { nombre, categoria };
+        
         if (descripcion) body.descripcion = descripcion;
         if (grupoMuscular) body.grupoMuscular = grupoMuscular;
         if (equipamiento) body.equipamiento = equipamiento;
         if (videoUrl) body.videoUrl = videoUrl;
         if (imagenUrl) body.imagenUrl = imagenUrl;
         if (instrucciones) body.instrucciones = instrucciones;
-        const result = await makeRequest('/exercises/create', 'POST', body);
-        showResponse('createExerciseResponse', result);
-    };
-}
+        
+        const result = await ApiTester.request('POST', '/exercises/create', body);
+        
+        if (result.success) {
+            Toast.success('Ejercicio creado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al crear');
+        }
+    },
 
-async function getAllExercises() {
-    showLoading('getAllExercisesResponse');
-    let token = localStorage.getItem('token') || null;
-    const result = await makeRequest('/exercises', 'GET', null, token);
-    showResponse('getAllExercisesResponse', result);
-}
+    async getExerciseById() {
+        const id = document.getElementById('getExerciseId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona un ejercicio');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/exercises/${id}`);
+        
+        if (result.success) {
+            Toast.success('Ejercicio obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
 
-async function getExerciseById() {
-    const exerciseId = document.getElementById('getExerciseId').value.trim();
-    if (!exerciseId) {
-        showResponse('getExerciseByIdResponse', { success: false, data: { message: 'exerciseId es requerido' } });
-        return;
+    async updateExercise(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('updateExerciseId').value;
+        if (!id) {
+            Toast.error('Selecciona un ejercicio');
+            return;
+        }
+        
+        const body = {};
+        
+        const nombre = document.getElementById('updateExerciseNombre').value;
+        const categoria = document.getElementById('updateExerciseCategoria').value;
+        const descripcion = document.getElementById('updateExerciseDescripcion').value;
+        
+        if (nombre) body.nombre = nombre;
+        if (categoria) body.categoria = categoria;
+        if (descripcion) body.descripcion = descripcion;
+        
+        if (Object.keys(body).length === 0) {
+            Toast.error('Ingresa al menos un campo');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', `/exercises/${id}`, body);
+        
+        if (result.success) {
+            Toast.success('Ejercicio actualizado');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async deleteExercise() {
+        const id = document.getElementById('deleteExerciseId').value;
+        
+        if (!id) {
+            Toast.error('Selecciona un ejercicio');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/exercises/${id}`);
+        
+        if (result.success) {
+            Toast.success('Ejercicio archivado');
+        } else {
+            Toast.error(result.data?.message || 'Error al archivar');
+        }
     }
-    showLoading('getExerciseByIdResponse');
-    const result = await makeRequest(`/exercises/${exerciseId}`, 'GET');
-    showResponse('getExerciseByIdResponse', result);
-}
+};
 
-// ==================== RUTINAS ====================
+// ============================================
+// ROUTINES MODULE
+// ============================================
 
-async function createRoutine() {
-    showLoading('createRoutineResponse');
-    try {
-        const body = JSON.parse(document.getElementById('createRoutineBody').value);
-        const result = await makeRequest('/routines/create', 'POST', body);
-        showResponse('createRoutineResponse', result);
-    } catch (error) {
-        showResponse('createRoutineResponse', { success: false, data: { message: 'JSON inválido' } });
+const RoutinesModule = {
+    async createRoutine(e) {
+        e.preventDefault();
+        
+        let ejercicios;
+        try {
+            ejercicios = JSON.parse(document.getElementById('routineEjercicios').value);
+        } catch (err) {
+            Toast.error('JSON de ejercicios inválido');
+            return;
+        }
+        
+        const body = {
+            nombre: document.getElementById('routineNombre').value,
+            ejercicios
+        };
+        
+        const descripcion = document.getElementById('routineDescripcion').value;
+        if (descripcion) body.descripcion = descripcion;
+        
+        const result = await ApiTester.request('POST', '/routines/create', body);
+        
+        if (result.success) {
+            Toast.success('Rutina creada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al crear');
+        }
+    },
+
+    async getRoutineById() {
+        const id = document.getElementById('getRoutineId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de rutina');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/routines/${id}`);
+        
+        if (result.success) {
+            Toast.success('Rutina obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async updateRoutine(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('updateRoutineId').value;
+        if (!id) {
+            Toast.error('Ingresa un ID de rutina');
+            return;
+        }
+        
+        const body = {};
+        
+        const nombre = document.getElementById('updateRoutineNombre').value;
+        const descripcion = document.getElementById('updateRoutineDescripcion').value;
+        const ejerciciosStr = document.getElementById('updateRoutineEjercicios').value;
+        
+        if (nombre) body.nombre = nombre;
+        if (descripcion) body.descripcion = descripcion;
+        
+        if (ejerciciosStr) {
+            try {
+                body.ejercicios = JSON.parse(ejerciciosStr);
+            } catch (err) {
+                Toast.error('JSON de ejercicios inválido');
+                return;
+            }
+        }
+        
+        if (Object.keys(body).length === 0) {
+            Toast.error('Ingresa al menos un campo');
+            return;
+        }
+        
+        const result = await ApiTester.request('PUT', `/routines/${id}`, body);
+        
+        if (result.success) {
+            Toast.success('Rutina actualizada');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async deleteRoutine() {
+        const id = document.getElementById('deleteRoutineId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de rutina');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/routines/${id}`);
+        
+        if (result.success) {
+            Toast.success('Rutina archivada');
+        } else {
+            Toast.error(result.data?.message || 'Error al archivar');
+        }
+    },
+
+    async assignRoutine(e) {
+        e.preventDefault();
+        
+        const userId = document.getElementById('assignUserId').value;
+        const routineId = document.getElementById('assignRoutineId').value;
+        
+        const result = await ApiTester.request('POST', '/routines/assign', { userId, routineId });
+        
+        if (result.success) {
+            Toast.success('Rutina asignada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al asignar');
+        }
+    },
+
+    async getUserRoutine() {
+        let userId = document.getElementById('getUserRoutineUserId').value;
+        
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/routines/user/${userId}`);
+        
+        if (result.success) {
+            Toast.success('Rutina del usuario obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async logProgress(e) {
+        e.preventDefault();
+        
+        let exercises;
+        try {
+            exercises = JSON.parse(document.getElementById('progressExercises').value);
+        } catch (err) {
+            Toast.error('JSON de ejercicios inválido');
+            return;
+        }
+        
+        const body = {
+            userId: document.getElementById('progressUserId').value,
+            exercises
+        };
+        
+        const date = document.getElementById('progressDate').value;
+        const notes = document.getElementById('progressNotes').value;
+        
+        if (date) body.date = date;
+        if (notes) body.notes = notes;
+        
+        const result = await ApiTester.request('POST', '/routines/progress', body);
+        
+        if (result.success) {
+            Toast.success('Progreso registrado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al registrar');
+        }
     }
-}
+};
 
-async function assignRoutine() {
-    const userId = document.getElementById('assignUserId').value.trim();
-    const routineId = document.getElementById('assignRoutineId').value.trim();
-    
-    if (!userId || !routineId) {
-        showResponse('assignRoutineResponse', { 
-            success: false, 
-            data: { message: 'userId y routineId son requeridos' } 
-        });
-        return;
+// ============================================
+// STREAKS MODULE
+// ============================================
+
+const StreaksModule = {
+    async checkIn(e) {
+        e.preventDefault();
+        
+        const body = {
+            userId: document.getElementById('checkInUserId').value
+        };
+        
+        const gymId = document.getElementById('checkInGymId').value;
+        const classId = document.getElementById('checkInClassId').value;
+        const code = document.getElementById('checkInCode').value;
+        
+        if (gymId) body.gymId = gymId;
+        if (classId) body.classId = classId;
+        if (code) body.code = code;
+        
+        const result = await ApiTester.request('POST', '/streaks/check-in', body);
+        
+        if (result.success) {
+            Toast.success('Check-in registrado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error en check-in');
+        }
+    },
+
+    async getHistory() {
+        let userId = document.getElementById('streakHistoryUserId').value;
+        
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/streaks/history?userId=${userId}`);
+        
+        if (result.success) {
+            Toast.success('Historial obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getStreak() {
+        let userId = document.getElementById('getStreakUserId').value;
+        
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/streaks/${userId}`);
+        
+        if (result.success) {
+            Toast.success('Racha obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
     }
-    
-    showLoading('assignRoutineResponse');
-    const result = await makeRequest('/routines/assign', 'POST', { userId, routineId });
-    showResponse('assignRoutineResponse', result);
-}
+};
 
-async function getUserRoutine() {
-    const userId = document.getElementById('getUserRoutineId').value.trim();
-    
-    if (!userId) {
-        showResponse('getUserRoutineResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
+// ============================================
+// REGISTRATIONS MODULE
+// ============================================
+
+const RegistrationsModule = {
+    async getActive() {
+        let userId = document.getElementById('getRegistrationsUserId').value;
+        
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/registrations/?userId=${userId}`);
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} inscripciones activas`);
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async create(e) {
+        e.preventDefault();
+        
+        const body = {
+            userId: document.getElementById('regUserId').value,
+            gymId: document.getElementById('regGymId').value,
+            classId: document.getElementById('regClassId').value
+        };
+        
+        const result = await ApiTester.request('POST', '/registrations/', body);
+        
+        if (result.success) {
+            Toast.success('Inscripción creada');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al crear');
+        }
+    },
+
+    async getHistory() {
+        let userId = document.getElementById('regHistoryUserId').value;
+        
+        if (!userId) {
+            userId = ApiTester.config.userId;
+        }
+        
+        if (!userId) {
+            Toast.error('Ingresa un User ID o inicia sesión');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/registrations/history?userId=${userId}`);
+        
+        if (result.success) {
+            Toast.success('Historial obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getById() {
+        const id = document.getElementById('getRegistrationId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de inscripción');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/registrations/${id}`);
+        
+        if (result.success) {
+            Toast.success('Inscripción obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async cancel() {
+        const id = document.getElementById('cancelRegistrationId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de inscripción');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/registrations/${id}`);
+        
+        if (result.success) {
+            Toast.success('Inscripción cancelada');
+        } else {
+            Toast.error(result.data?.message || 'Error al cancelar');
+        }
     }
-    
-    showLoading('getUserRoutineResponse');
-    const result = await makeRequest(`/routines/user/${userId}`, 'GET');
-    showResponse('getUserRoutineResponse', result);
-}
+};
 
-async function getRoutineById() {
-    const routineId = document.getElementById('getRoutineId').value.trim();
-    if (!routineId) {
-        showResponse('getRoutineByIdResponse', { success: false, data: { message: 'routineId es requerido' } });
-        return;
+// ============================================
+// PAYMENTS MODULE
+// ============================================
+
+const PaymentsModule = {
+    async processPayment(e) {
+        e.preventDefault();
+        
+        const body = {
+            amount: Number(document.getElementById('paymentAmount').value),
+            method: document.getElementById('paymentMethod').value,
+            token: document.getElementById('paymentToken').value,
+            gymId: document.getElementById('paymentGymId').value
+        };
+        
+        const concept = document.getElementById('paymentConcept').value;
+        if (concept) body.concept = concept;
+        
+        const result = await ApiTester.request('POST', '/payments/process', body);
+        
+        if (result.success) {
+            Toast.success('Pago procesado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al procesar');
+        }
+    },
+
+    async getHistory() {
+        const year = document.getElementById('paymentHistoryYear').value;
+        let endpoint = '/payments/history';
+        
+        if (year) endpoint += `?year=${year}`;
+        
+        const result = await ApiTester.request('GET', endpoint);
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} pagos encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getStatus() {
+        const result = await ApiTester.request('GET', '/payments/status');
+        
+        if (result.success) {
+            Toast.success('Estado obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getMethods() {
+        const result = await ApiTester.request('GET', '/payments/methods');
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} métodos encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async addMethod(e) {
+        e.preventDefault();
+        
+        const body = {
+            type: document.getElementById('methodType').value
+        };
+        
+        const detailsStr = document.getElementById('methodDetails').value;
+        if (detailsStr) {
+            try {
+                body.details = JSON.parse(detailsStr);
+            } catch (err) {
+                Toast.error('JSON de detalles inválido');
+                return;
+            }
+        }
+        
+        const result = await ApiTester.request('POST', '/payments/methods', body);
+        
+        if (result.success) {
+            Toast.success('Método agregado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al agregar');
+        }
+    },
+
+    async deleteMethod() {
+        const id = document.getElementById('deleteMethodId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de método');
+            return;
+        }
+        
+        const result = await ApiTester.request('DELETE', `/payments/methods/${id}`);
+        
+        if (result.success) {
+            Toast.success('Método eliminado');
+        } else {
+            Toast.error(result.data?.message || 'Error al eliminar');
+        }
     }
-    showLoading('getRoutineByIdResponse');
-    const result = await makeRequest(`/routines/${routineId}`, 'GET');
-    showResponse('getRoutineByIdResponse', result);
-}
+};
 
-// ==================== PROGRESO ====================
+// ============================================
+// FINANCE MODULE
+// ============================================
 
-async function logProgress() {
-    const userId = document.getElementById('progressUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('logProgressResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
+const FinanceModule = {
+    async getSettings() {
+        const result = await ApiTester.request('GET', '/finance/settings');
+        
+        if (result.success) {
+            Toast.success('Configuración obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async updateSettings(e) {
+        e.preventDefault();
+        
+        const body = {
+            monthlyQuota: Number(document.getElementById('financeMonthlyQuota').value)
+        };
+        
+        const expirationDays = document.getElementById('financeExpirationDays').value;
+        const surchargePercentage = document.getElementById('financeSurcharge').value;
+        const currency = document.getElementById('financeCurrency').value;
+        
+        if (expirationDays) body.expirationDays = Number(expirationDays);
+        if (surchargePercentage) body.surchargePercentage = Number(surchargePercentage);
+        if (currency) body.currency = currency;
+        
+        const result = await ApiTester.request('PUT', '/finance/settings', body);
+        
+        if (result.success) {
+            Toast.success('Configuración actualizada');
+        } else {
+            Toast.error(result.data?.message || 'Error al actualizar');
+        }
+    },
+
+    async getDashboard() {
+        const period = document.getElementById('dashboardPeriod').value;
+        let endpoint = '/finance/dashboard';
+        
+        if (period) endpoint += `?period=${period}`;
+        
+        const result = await ApiTester.request('GET', endpoint);
+        
+        if (result.success) {
+            Toast.success('Dashboard obtenido');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getTransactions() {
+        const result = await ApiTester.request('GET', '/finance/transactions');
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} transacciones encontradas`);
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getMonthlyReport() {
+        const month = document.getElementById('reportMonth').value;
+        const year = document.getElementById('reportYear').value;
+        
+        if (!month || !year) {
+            Toast.error('Selecciona mes y año');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/finance/reports/monthly?month=${month}&year=${year}`);
+        
+        if (result.success) {
+            Toast.success('Reporte generado');
+        } else {
+            Toast.error(result.data?.message || 'Error al generar');
+        }
+    },
+
+    async getInvoice() {
+        const id = document.getElementById('getInvoiceId').value;
+        
+        if (!id) {
+            Toast.error('Ingresa un ID de factura');
+            return;
+        }
+        
+        const result = await ApiTester.request('GET', `/finance/invoices/${id}`);
+        
+        if (result.success) {
+            Toast.success('Factura obtenida');
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async getDebtors() {
+        const result = await ApiTester.request('GET', '/finance/debtors');
+        
+        if (result.success) {
+            const count = result.data?.data?.length || 0;
+            Toast.success(`${count} deudores encontrados`);
+        } else {
+            Toast.error(result.data?.message || 'Error al obtener');
+        }
+    },
+
+    async sendReminders(e) {
+        e.preventDefault();
+        
+        let userIds;
+        try {
+            userIds = JSON.parse(document.getElementById('reminderUserIds').value);
+        } catch (err) {
+            Toast.error('JSON inválido');
+            return;
+        }
+        
+        const result = await ApiTester.request('POST', '/finance/reminders', { userIds });
+        
+        if (result.success) {
+            Toast.success('Recordatorios enviados');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al enviar');
+        }
+    },
+
+    async registerManualPayment(e) {
+        e.preventDefault();
+        
+        const body = {
+            userId: document.getElementById('manualPaymentUserId').value,
+            amount: Number(document.getElementById('manualPaymentAmount').value)
+        };
+        
+        const concept = document.getElementById('manualPaymentConcept').value;
+        if (concept) body.concept = concept;
+        
+        const result = await ApiTester.request('POST', '/finance/manual-payment', body);
+        
+        if (result.success) {
+            Toast.success('Pago manual registrado');
+            e.target.reset();
+        } else {
+            Toast.error(result.data?.message || 'Error al registrar');
+        }
     }
-    
-    showLoading('logProgressResponse');
-    
-    try {
-        const body = JSON.parse(document.getElementById('logProgressBody').value);
-        const result = await makeRequest(`/routines/user/${userId}/progress`, 'POST', body);
-        showResponse('logProgressResponse', result);
-    } catch (error) {
-        showResponse('logProgressResponse', { success: false, data: { message: 'JSON inválido' } });
-    }
-}
+};
 
-// ==================== RACHAS ====================
+// ============================================
+// INITIALIZATION
+// ============================================
 
-async function checkIn() {
-    const userId = document.getElementById('checkinUserId').value.trim();
-    const classId = document.getElementById('checkinClassId').value.trim();
-    
-    if (!userId || !classId) {
-        showResponse('checkInResponse', { 
-            success: false, 
-            data: { message: 'userId y classId son requeridos' } 
-        });
-        return;
-    }
-    
-    showLoading('checkInResponse');
-    const result = await makeRequest('/streaks/check-in', 'POST', { userId, classId });
-    showResponse('checkInResponse', result);
-}
-
-async function getStreak() {
-    const userId = document.getElementById('streakUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getStreakResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getStreakResponse');
-    const result = await makeRequest(`/streaks/streak/${userId}`, 'GET');
-    showResponse('getStreakResponse', result);
-}
-
-async function getHistory() {
-    const userId = document.getElementById('historyUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getHistoryResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getHistoryResponse');
-    const result = await makeRequest(`/streaks/history?userId=${userId}`, 'GET');
-    showResponse('getHistoryResponse', result);
-}
-
-// ==================== INSCRIPCIONES ====================
-
-async function createRegistration() {
-    showLoading('createRegistrationResponse');
-    try {
-        const body = JSON.parse(document.getElementById('createRegistrationBody').value);
-        const result = await makeRequest('/registrations', 'POST', body);
-        showResponse('createRegistrationResponse', result);
-    } catch (error) {
-        showResponse('createRegistrationResponse', { success: false, data: { message: 'JSON inválido' } });
-    }
-}
-
-async function getUserRegistrations() {
-    const userId = document.getElementById('getRegistrationsUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getUserRegistrationsResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getUserRegistrationsResponse');
-    const result = await makeRequest(`/registrations?userId=${userId}`, 'GET');
-    showResponse('getUserRegistrationsResponse', result);
-}
-
-async function getRegistrationHistory() {
-    const userId = document.getElementById('getRegistrationHistoryUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getRegistrationHistoryResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getRegistrationHistoryResponse');
-    const result = await makeRequest(`/registrations/history?userId=${userId}`, 'GET');
-    showResponse('getRegistrationHistoryResponse', result);
-}
-
-async function cancelRegistration() {
-    const registrationId = document.getElementById('cancelRegistrationId').value.trim();
-    
-    if (!registrationId) {
-        showResponse('cancelRegistrationResponse', { success: false, data: { message: 'registrationId es requerido' } });
-        return;
-    }
-    
-    showLoading('cancelRegistrationResponse');
-    const result = await makeRequest(`/registrations/${registrationId}/cancel`, 'POST');
-    showResponse('cancelRegistrationResponse', result);
-}
-
-// ==================== PAGOS ====================
-
-async function processPayment() {
-    showLoading('processPaymentResponse');
-    try {
-        const body = JSON.parse(document.getElementById('processPaymentBody').value);
-        const result = await makeRequest('/payments/process', 'POST', body);
-        showResponse('processPaymentResponse', result);
-    } catch (error) {
-        showResponse('processPaymentResponse', { success: false, data: { message: 'JSON inválido' } });
-    }
-}
-
-async function getPaymentStatus() {
-    const userId = document.getElementById('paymentStatusUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getPaymentStatusResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getPaymentStatusResponse');
-    const result = await makeRequest(`/payments/status/${userId}`, 'GET');
-    showResponse('getPaymentStatusResponse', result);
-}
-
-async function getPaymentHistory() {
-    const userId = document.getElementById('paymentHistoryUserId').value.trim();
-    
-    if (!userId) {
-        showResponse('getPaymentHistoryResponse', { success: false, data: { message: 'userId es requerido' } });
-        return;
-    }
-    
-    showLoading('getPaymentHistoryResponse');
-    const result = await makeRequest(`/payments/history/${userId}`, 'GET');
-    showResponse('getPaymentHistoryResponse', result);
-}
-
-// ==================== FINANZAS ====================
-
-async function getFinanceSettings() {
-    showLoading('getFinanceSettingsResponse');
-    const result = await makeRequest('/finance/settings', 'GET');
-    showResponse('getFinanceSettingsResponse', result);
-}
-
-async function updateFinanceSettings() {
-    showLoading('updateFinanceSettingsResponse');
-    try {
-        const body = JSON.parse(document.getElementById('updateFinanceSettingsBody').value);
-        const result = await makeRequest('/finance/settings', 'PUT', body);
-        showResponse('updateFinanceSettingsResponse', result);
-    } catch (error) {
-        showResponse('updateFinanceSettingsResponse', { success: false, data: { message: 'JSON inválido' } });
-    }
-}
-
-async function getFinanceDashboard() {
-    showLoading('getFinanceDashboardResponse');
-    const result = await makeRequest('/finance/dashboard', 'GET');
-    showResponse('getFinanceDashboardResponse', result);
-}
-
-async function getDebtors() {
-    showLoading('getDebtorsResponse');
-    const result = await makeRequest('/finance/debtors', 'GET');
-    showResponse('getDebtorsResponse', result);
-}
+document.addEventListener('DOMContentLoaded', () => {
+    ApiTester.init();
+    Toast.init();
+});
