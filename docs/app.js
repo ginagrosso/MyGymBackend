@@ -71,14 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
             let resultToShow = { ...result };
             if (resultToShow.success && resultToShow.data) {
-                // Si la respuesta es un string (ej: el token plano)
-                if (typeof resultToShow.data === 'string') {
-                    // Guardar el token pero no mostrarlo
-                    localStorage.setItem('token', resultToShow.data);
-                    document.dispatchEvent(new Event('tokenChanged'));
-                    // No hay userId en este caso
-                    resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
-                } else if (resultToShow.data.token) {
+                if (resultToShow.data.token) {
                     localStorage.setItem('token', resultToShow.data.token);
                     // Guardar userId si viene en la respuesta
                     let userId = null;
@@ -106,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Cerrar modal tras breve delay
                 setTimeout(() => { loginModal.style.display = 'none'; }, 800);
             }
-            showResponse('loginModalResponse', resultToShow);
+            showResponse('loginModalResponse');
         };
     }
 
