@@ -19,23 +19,18 @@ const createRoutineInDB = async (data) => {
     
     await newRoutineRef.set(fullData);
     
-    console.log(`REPO. Rutina creada con ID: ${routineId}`);
-    
     return fullData;
 };
 
 const updateRoutineInDB = async (routineId, data) => {
-    console.log(`REPO. Actualizando rutina ${routineId}`);
     
     const cleanedData = cleanObject(data);
     
     await db.ref(`routines/${routineId}`).update(cleanedData);
     
-    console.log(`REPO. Rutina actualizada`);
 };
 
 const getRoutineDetailsFromDB = async (routineId) => {
-    console.log(`REPO. Obteniendo rutina ${routineId}`);
     
     const snapshot = await db.ref(`routines/${routineId}`).once('value');
     const routine = snapshot.val();
@@ -48,7 +43,6 @@ const getRoutineDetailsFromDB = async (routineId) => {
 };
 
 const getUserActiveRoutineIdFromDB = async (userId) => {
-    console.log(`REPO. Obteniendo rutina activa del usuario ${userId}`);
     
     const snapshot = await db.ref(`userRoutines/${userId}/activeRoutineId`).once('value');
     const routineId = snapshot.val();
@@ -57,18 +51,15 @@ const getUserActiveRoutineIdFromDB = async (userId) => {
 };
 
 const assignRoutineToUserInDB = async (userId, routineId) => {
-    console.log(`REPO. Asignando rutina ${routineId} al usuario ${userId}`);
     
     await db.ref(`userRoutines/${userId}`).set({
         activeRoutineId: routineId,
         assignedAt: Date.now()
     });
     
-    console.log(`REPO. Rutina asignada exitosamente`);
 };
 
 const saveProgressInDB = async (progressData) => {
-    console.log('REPO. Guardando progreso en DB');
     
     const { userId, routineId, date } = progressData;
     
@@ -77,8 +68,6 @@ const saveProgressInDB = async (progressData) => {
     const cleanedData = cleanObject(progressData);
     
     await progressRef.set(cleanedData);
-    
-    console.log(`REPO. Progreso guardado en progress/${userId}/${routineId}/${date}`);
     
     return {
         progressId: `${userId}_${routineId}_${date}`,
