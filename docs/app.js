@@ -191,15 +191,14 @@ if (logProgressForm) {
 // ========== OBTENER Y MAPEAR EJERCICIOS PARA RUTINAS ==========
 let ejerciciosDisponibles = [];
 async function cargarEjerciciosParaRutina() {
-    // Llama al endpoint de ejercicios con token si existe
-    let token = localStorage.getItem('token') || null;
-    let result;
-    if (token) {
-        result = await makeRequest('/exercises', 'GET', null, token);
-    } else {
-        result = await makeRequest('/exercises', 'GET');
+    // Solo llamar si hay token (usuario logueado)
+    let token = localStorage.getItem('token');
+    if (!token) {
+        ejerciciosDisponibles = [];
+        actualizarSelectsEjercicios();
+        return;
     }
-    // El endpoint devuelve { success: true, data: [ ... ] }
+    let result;
     try {
         result = await makeRequest('/exercises', 'GET', null, token);
     } catch (e) {
@@ -207,7 +206,6 @@ async function cargarEjerciciosParaRutina() {
         actualizarSelectsEjercicios();
         return;
     }
-    // El endpoint devuelve { success: true, data: [ ... ] }
     if (result && result.success && Array.isArray(result.data)) {
         ejerciciosDisponibles = result.data;
     } else if (result && result.success && result.data && Array.isArray(result.data.ejercicios)) {
