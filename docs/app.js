@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
-            const result = await makeRequest('/auth/login', 'POST', { email, password });
+            const result = await makeRequest('/auth/auth/login', 'POST', { email, password });
             // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
             let resultToShow = { ...result };
             if (resultToShow.success && resultToShow.data) {
