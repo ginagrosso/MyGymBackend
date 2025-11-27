@@ -333,6 +333,22 @@ const SmartSelectors = {
         clients: {}
     },
 
+    // Convierte objetos/mapas {id: {data}} a arrays [{id, ...data}]
+    normalizeData(data) {
+        if (!data) return [];
+        if (Array.isArray(data)) return data;
+        if (typeof data === 'object') {
+            return Object.entries(data).map(([key, value]) => {
+                // Asegurar que value es objeto
+                if (typeof value === 'object' && value !== null) {
+                    return { ...value, id: key, uid: key }; // Inyectamos ID y UID para compatibilidad
+                }
+                return { id: key, uid: key, value };
+            });
+        }
+        return [];
+    },
+
     async loadGyms(selectId) {
         const select = document.getElementById(selectId);
         select.innerHTML = '<option value="">Cargando...</option>';
@@ -340,7 +356,7 @@ const SmartSelectors = {
         const result = await ApiTester.request('GET', '/gyms/gyms', null, { skipAuth: true });
         
         if (result.success && result.data?.data) {
-            this.cache.gyms = Array.isArray(result.data.data) ? result.data.data : [];
+            this.cache.gyms = this.normalizeData(result.data.data);
             this.populateSelect(select, this.cache.gyms, 'uid', 'businessName');
             Toast.success(`${this.cache.gyms.length} gimnasios cargados`);
         } else {
@@ -364,7 +380,7 @@ const SmartSelectors = {
         const result = await ApiTester.request('GET', `/gyms/gyms/${gymId}/clients`);
         
         if (result.success && result.data?.data) {
-            const clients = Array.isArray(result.data.data) ? result.data.data : [];
+            const clients = this.normalizeData(result.data.data);
             this.cache.clients[gymId] = clients;
             this.populateSelect(clientSelect, clients, 'uid', 'name', 'email');
             Toast.success(`${clients.length} clientes cargados`);
@@ -381,7 +397,7 @@ const SmartSelectors = {
         const result = await ApiTester.request('GET', '/exercises/');
         
         if (result.success && result.data?.data) {
-            this.cache.exercises = Array.isArray(result.data.data) ? result.data.data : [];
+            this.cache.exercises = this.normalizeData(result.data.data);
             this.populateSelect(select, this.cache.exercises, 'id', 'nombre', 'categoria');
             Toast.success(`${this.cache.exercises.length} ejercicios cargados`);
         } else {
@@ -397,7 +413,7 @@ const SmartSelectors = {
         const result = await ApiTester.request('GET', '/classes/');
         
         if (result.success && result.data?.data) {
-            this.cache.classes = Array.isArray(result.data.data) ? result.data.data : [];
+            this.cache.classes = this.normalizeData(result.data.data);
             this.populateSelect(select, this.cache.classes, 'id', 'nombre');
             Toast.success(`${this.cache.classes.length} clases cargadas`);
         } else {
