@@ -1289,10 +1289,11 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label>Ejercicios Completados (JSON Array) *</label>
-                                <textarea id="progressExercises" rows="4" required placeholder='[
-  {"exerciseId": "abc123", "completedSets": 3, "completedReps": 10, "weight": 25}
-]'></textarea>
+                                <label>Ejercicios Completados *</label>
+                                <div id="progressExercisesContainer"></div>
+                                <button type="button" class="btn btn-sm btn-success" onclick="RoutinesModule.addProgressExerciseRow()" style="margin-top: 10px;">
+                                    + Agregar Ejercicio
+                                </button>
                             </div>
                             <div class="form-group">
                                 <label>Notas</label>

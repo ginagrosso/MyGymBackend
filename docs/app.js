@@ -1463,14 +1463,79 @@ const RoutinesModule = {
         }
     },
 
+    async addProgressExerciseRow() {
+        await this.ensureExercisesLoaded();
+        const container = document.getElementById('progressExercisesContainer');
+        
+        const row = document.createElement('div');
+        row.className = 'progress-exercise-row';
+        row.style.cssText = 'background: var(--bg-tertiary); padding: 15px; margin-bottom: 10px; border-radius: var(--radius-md); border: 1px solid var(--border); position: relative; animation: fadeIn 0.3s ease;';
+        
+        let options = '<option value="">Seleccionar Ejercicio...</option>';
+        this.exercisesCache.forEach(ex => {
+            options += `<option value="${ex.exerciseId || ex.id}">${ex.nombre} (${ex.categoria})</option>`;
+        });
+
+        row.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            <div class="form-group">
+                <label>Ejercicio</label>
+                <select class="progress-exercise-select" required style="width: 100%; margin-bottom: 10px;">
+                    ${options}
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Completed Sets</label>
+                    <input type="number" class="progress-sets" placeholder="3" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Completed Reps</label>
+                    <input type="number" class="progress-reps" placeholder="10" required min="1">
+                </div>
+                <div class="form-group">
+                    <label>Peso (kg)</label>
+                    <input type="number" class="progress-weight" placeholder="0" min="0">
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(row);
+    },
+
     async logProgress(e) {
         e.preventDefault();
         
-        let exercises;
-        try {
-            exercises = JSON.parse(document.getElementById('progressExercises').value);
-        } catch (err) {
-            Toast.error('JSON de ejercicios inválido');
+        const rows = document.querySelectorAll('.progress-exercise-row');
+        if (rows.length === 0) {
+            Toast.error('Agrega al menos un ejercicio completado');
+            return;
+        }
+
+        const exercises = [];
+        let hasError = false;
+
+        rows.forEach(row => {
+            const exerciseId = row.querySelector('.progress-exercise-select').value;
+            const completedSets = Number(row.querySelector('.progress-sets').value);
+            const completedReps = Number(row.querySelector('.progress-reps').value);
+            const weight = Number(row.querySelector('.progress-weight').value);
+
+            if (!exerciseId) {
+                hasError = true;
+                return;
+            }
+
+            exercises.push({
+                exerciseId,
+                completedSets,
+                completedReps,
+                weight
+            });
+        });
+
+        if (hasError) {
+            Toast.error('Selecciona un ejercicio en todas las filas');
             return;
         }
         
@@ -1490,6 +1555,7 @@ const RoutinesModule = {
         if (result.success) {
             Toast.success('Progreso registrado');
             e.target.reset();
+            document.getElementById('progressExercisesContainer').innerHTML = '';
         } else {
             Toast.error(result.data?.message || 'Error al registrar');
         }
