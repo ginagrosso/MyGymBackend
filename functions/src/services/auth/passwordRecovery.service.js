@@ -13,7 +13,16 @@ const forgotPassword = async (data) => {
     }
     
     try {
-        await admin.auth().generatePasswordResetLink(value.email);
+        // Usar API REST de Firebase para enviar el correo real
+        const firebaseApiKey = process.env.MY_FIREBASE_API_KEY;
+        await axios.post(
+            `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${firebaseApiKey}`,
+            {
+                requestType: "PASSWORD_RESET",
+                email: value.email
+            }
+        );
+
         return {
             message: 'Email de recuperación enviado. Revisá tu casilla de correo.'
         };
