@@ -81,14 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 showResponse('loginModalResponse', { success: false, data: { message: 'Respuesta inválida del servidor' } });
                 return;
             }
+            const payload = (result.data && result.data.data) ? result.data.data : (result.data || null);
             // Guardar token y userId si existen
-            if (result.success && result.data && result.data.token) {
-                localStorage.setItem('token', result.data.token);
-                let userId = null;
-                if (result.data.userId || result.data.uid || result.data.id) {
-                    userId = result.data.userId || result.data.uid || result.data.id;
-                } else if (result.data.user && result.data.user.uid) {
-                    userId = result.data.user.uid;
+            if (result.success && payload && payload.token) {
+                localStorage.setItem('token', payload.token);
+                let userId = payload.userId || payload.uid || payload.id || null;
+                if (!userId && payload.user && (payload.user.uid || payload.user.id)) {
+                    userId = payload.user.uid || payload.user.id;
                 }
                 if (userId) {
                     localStorage.setItem('userId', userId);
