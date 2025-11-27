@@ -67,10 +67,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const email = document.getElementById('loginEmail').value;
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
-            const result = await makeRequest('/auth/auth/login', 'POST', { email, password });
+            let result;
+            try {
+                result = await makeRequest('/auth/auth/login', 'POST', { email, password });
+            } catch (err) {
+                console.error('Error en makeRequest login:', err);
+                showResponse('loginModalResponse', { success: false, data: { message: 'Error en login: ' + (err && err.message ? err.message : err) } });
+                return;
+            }
+            // Protección extra: si result es undefined/null, forzar objeto de error
+            if (!result || typeof result !== 'object') {
+                console.error('Login result inválido:', result);
+                showResponse('loginModalResponse', { success: false, data: { message: 'Respuesta inválida del servidor' } });
+                return;
+            }
             // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
             let resultToShow = { ...result };
-            if (resultToShow.success && resultToShow.data) {
+            if (resultToShow && resultToShow.success && resultToShow.data) {
                 if (resultToShow.data.token) {
                     localStorage.setItem('token', resultToShow.data.token);
                     // Guardar userId si viene en la respuesta
@@ -99,10 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Cerrar modal tras breve delay
                 setTimeout(() => { loginModal.style.display = 'none'; }, 800);
             }
-            if (resultToShow) {
+            // Log para depuración
+            console.log('Login resultToShow:', resultToShow);
+            if (resultToShow && typeof resultToShow === 'object') {
                 showResponse('loginModalResponse', resultToShow);
             } else {
-                showResponse('loginModalResponse', { success: false, data: { message: 'Error inesperado en login' } });
+                showResponse('loginModalResponse', { success: false, data: { message: 'Error inesperado en login (resultToShow)' } });
             }
         };
     }
@@ -352,9 +367,18 @@ async function makeRequest(endpoint, method = 'GET', body = null, token = null) 
     }
     try {
         const response = await fetch(url, options);
-        const data = await response.json();
+        let data;
+        try {
+            data = await response.json();
+        } catch (jsonErr) {
+            // Si la respuesta no es JSON válida
+            data = { message: 'Respuesta no es JSON válida', raw: await response.text() };
+        }
+        // Log para depuración
+        console.log('makeRequest', { url, options, responseStatus: response.status, data });
         return { success: response.ok, data, status: response.status };
     } catch (error) {
+        console.error('makeRequest error:', error);
         return { success: false, data: { message: error.message }, status: 0 };
     }
 }
@@ -362,9 +386,17 @@ async function makeRequest(endpoint, method = 'GET', body = null, token = null) 
 function showResponse(elementId, result) {
     const element = document.getElementById(elementId);
     element.className = 'response';
+    // Log para depuración
+    console.log('showResponse', { elementId, result });
     if (!result || typeof result !== 'object') {
         element.classList.add('error');
         element.textContent = 'Error: respuesta inválida';
+        return;
+    }
+    // Protección extra: si result.success es undefined, mostrar error genérico
+    if (typeof result.success === 'undefined') {
+        element.classList.add('error');
+        element.textContent = 'Error: respuesta sin campo success';
         return;
     }
     if (result.success) {
