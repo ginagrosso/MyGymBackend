@@ -85,7 +85,7 @@ const updateExerciseInDB = async (exerciseId, data) => {;
 
 const archiveExerciseInDB = async (exerciseId) => {
     
-    await db.ref(`customExercises/${gymId}/${exerciseId}`).update({
+    await db.ref(`exercises/${exerciseId}`).update({
         isArchived: true,
         archivedAt: Date.now()
     });

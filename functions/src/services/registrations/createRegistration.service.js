@@ -9,15 +9,6 @@ const createRegistration = async (data) => {
             throw new Error(error.details[0].message);
         }
         
-        const isRegistered = await registrationsRepository.isUserRegisteredInClass(
-            value.userId,
-            value.classId
-        );
-        
-        if (isRegistered) {
-            throw new Error('Ya estás inscrito en esta clase');
-        }
-        
         const registration = await registrationsRepository.createRegistrationInDB(value);
         
         return registration;
