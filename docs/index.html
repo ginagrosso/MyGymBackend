@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyGym Backend Tester - Completo</title>
+    <title>MyGym Backend Tester</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         .sidebar {
@@ -37,12 +37,23 @@
 <body>
     <div class="container">
         <header>
-            <h1>🏋️ MyGym Backend Tester - Completo</h1>
+            <h1>🏋️ MyGym Backend Tester</h1>
             <div class="config">
                 <label for="baseUrl">Base URL:</label>
                 <input type="text" id="baseUrl" value="https://mygym-912d1-default-rtdb.firebaseio.com" placeholder="https://tu-proyecto.cloudfunctions.net">
+                <button id="logoutBtn" style="margin-left:20px;display:none;">Cerrar sesión</button>
             </div>
         </header>
+
+        <!-- Landing Page -->
+        <section class="landing">
+            <h2>Bienvenido a MyGym</h2>
+            <p>Gestioná tu gimnasio, usuarios, rutinas y finanzas desde un solo lugar.</p>
+            <div class="landing-actions">
+                <button id="openLoginModal">Iniciar sesión</button>
+                <button id="openRegisterModal">Registrarse</button>
+            </div>
+        </section>
 
         <nav class="sidebar">
             <a href="#auth">🔐 Auth</a>
@@ -57,70 +68,69 @@
             <a href="#finance">💰 Finanzas</a>
         </nav>
 
+        <!-- Modales -->
+        <div id="loginModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeLoginModal">&times;</span>
+                <h2>Iniciar sesión</h2>
+                <form id="loginForm">
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="password" id="loginPassword" placeholder="Contraseña" required>
+                    <button type="submit">Ingresar</button>
+                </form>
+                <div id="loginModalResponse" class="response"></div>
+            </div>
+        </div>
+        <div id="registerModal" class="modal">
+            <div class="modal-content">
+                <span class="close" id="closeRegisterModal">&times;</span>
+                <h2>Registrarse</h2>
+                <form id="registerForm">
+                    <label for="registerType" style="margin-bottom:5px;">¿Te querés registrar como:</label>
+                    <select id="registerType" required style="margin-bottom:15px;">
+                        <option value="client">Cliente</option>
+                        <option value="gym">Gimnasio</option>
+                    </select>
+                    <div id="registerClientFields">
+                        <input type="email" id="registerEmail" placeholder="Email" required>
+                        <input type="password" id="registerPassword" placeholder="Contraseña" required>
+                        <input type="password" id="registerPassword2" placeholder="Confirmar contraseña" required>
+                        <input type="text" id="registerName" placeholder="Nombre completo" required>
+                        <input type="text" id="registerDni" placeholder="DNI" required>
+                        <input type="date" id="registerBirthDate" placeholder="Fecha de nacimiento" required>
+                        <input type="text" id="registerGymId" placeholder="ID de gimnasio" required>
+                        <select id="registerGender">
+                            <option value="">Género (opcional)</option>
+                            <option value="male">Masculino</option>
+                            <option value="female">Femenino</option>
+                            <option value="other">Otro</option>
+                        </select>
+                        <input type="url" id="registerAvatarUri" placeholder="Avatar URL (opcional)">
+                        <input type="text" id="registerPhone" placeholder="Teléfono (opcional)">
+                        <input type="number" id="registerWeight" placeholder="Peso (kg, opcional)" min="20" max="500">
+                        <input type="number" id="registerHeight" placeholder="Altura (cm, opcional)" min="100" max="250">
+                    </div>
+                    <div id="registerGymFields" style="display:none;">
+                        <input type="email" id="registerGymEmail" placeholder="Email" required>
+                        <input type="password" id="registerGymPassword" placeholder="Contraseña" required>
+                        <input type="text" id="registerGymBusinessName" placeholder="Nombre del gimnasio" required>
+                        <input type="text" id="registerGymAddress" placeholder="Dirección" required>
+                        <input type="text" id="registerGymPhone" placeholder="Teléfono (opcional)">
+                        <input type="url" id="registerGymAvatarUri" placeholder="Avatar URL (opcional)">
+                    </div>
+                    <button type="submit">Crear cuenta</button>
+                </form>
+                <div id="registerModalResponse" class="response"></div>
+            </div>
+        </div>
+
         <main>
-            <!-- ==================== AUTH ==================== -->
-            <section class="section" id="auth">
-                <h2>🔐 Autenticación</h2>
-                
-                <div class="endpoint">
-                    <h3>Login</h3>
-                    <textarea id="loginBody" rows="4">{
-  "email": "test@example.com",
-  "password": "password123"
-}</textarea>
-                    <button onclick="login()">POST /auth/auth/login</button>
-                    <div class="response" id="loginResponse"></div>
-                </div>
-
-                <div class="endpoint">
-                    <h3>Recuperar Contraseña</h3>
-                    <textarea id="forgotPasswordBody" rows="3">{
-  "email": "test@example.com"
-}</textarea>
-                    <button onclick="forgotPassword()">POST /auth/auth/forgot-password</button>
-                    <div class="response" id="forgotPasswordResponse"></div>
-                </div>
-            </section>
-
-            <!-- ==================== USUARIOS ==================== -->
-            <section class="section" id="users">
-                <h2>👤 Usuarios</h2>
-                
-                <div class="endpoint">
-                    <h3>Registrar Cliente</h3>
-                    <textarea id="createUserBody" rows="10">{
-  "email": "test@example.com",
-  "password": "password123",
-  "name": "Usuario Test",
-  "dni": "12345678",
-  "birthDate": "1990-01-01",
-  "gender": "male",
-  "phone": "+54911234567",
-  "weight": 75,
-  "height": 180
-}</textarea>
-                    <button onclick="createUser()">POST /users/auth/register/client</button>
-                    <div class="response" id="createUserResponse"></div>
-                </div>
             </section>
 
             <!-- ==================== GIMNASIOS ==================== -->
             <section class="section" id="gyms">
                 <h2>🏢 Gimnasios</h2>
-                
                 <div class="endpoint">
-                    <h3>Registrar Gimnasio</h3>
-                    <textarea id="registerGymBody" rows="8">{
-  "name": "Gym Test",
-  "address": "Calle Principal 123",
-  "phone": "+54911111111",
-  "email": "gym@test.com",
-  "ownerEmail": "owner@test.com",
-  "ownerPassword": "password123"
-}</textarea>
-                    <button onclick="registerGym()">POST /gyms/auth/register/gym</button>
-                    <div class="response" id="registerGymResponse"></div>
-                </div>
 
                 <div class="endpoint">
                     <h3>Listar Gimnasios</h3>
@@ -139,20 +149,25 @@
             <!-- ==================== EJERCICIOS ==================== -->
             <section class="section" id="exercises">
                 <h2>💪 Ejercicios</h2>
-                
                 <div class="endpoint">
                     <h3>Crear Ejercicio</h3>
-                    <textarea id="createExerciseBody" rows="10">{
-  "nombre": "Sentadillas",
-  "descripcion": "Ejercicio compuesto para piernas",
-  "categoria": "fuerza",
-  "grupoMuscular": "piernas",
-  "equipamiento": "barra",
-  "videoUrl": "https://youtube.com/watch?v=ejemplo",
-  "imagenUrl": "https://ejemplo.com/sentadillas.jpg",
-  "instrucciones": "1. Colócate de pie. 2. Desciende. 3. Sube."
-}</textarea>
-                    <button onclick="createExercise()">POST /exercises/create</button>
+                    <form id="createExerciseForm">
+                        <input type="text" id="exerciseNombre" placeholder="Nombre" required>
+                        <input type="text" id="exerciseDescripcion" placeholder="Descripción (opcional)">
+                        <select id="exerciseCategoria" required>
+                            <option value="">Categoría</option>
+                            <option value="fuerza">Fuerza</option>
+                            <option value="cardio">Cardio</option>
+                            <option value="flexibilidad">Flexibilidad</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                        <input type="text" id="exerciseGrupoMuscular" placeholder="Grupo muscular (opcional)">
+                        <input type="text" id="exerciseEquipamiento" placeholder="Equipamiento (opcional)">
+                        <input type="url" id="exerciseVideoUrl" placeholder="URL del video (opcional)">
+                        <input type="url" id="exerciseImagenUrl" placeholder="URL de la imagen (opcional)">
+                        <textarea id="exerciseInstrucciones" placeholder="Instrucciones (opcional)"></textarea>
+                        <button type="submit">POST /exercises/create</button>
+                    </form>
                     <div class="response" id="createExerciseResponse"></div>
                 </div>
 
@@ -176,24 +191,29 @@
                 
                 <div class="endpoint">
                     <h3>Crear Rutina</h3>
-                    <textarea id="createRoutineBody" rows="15">{
-  "nombre": "Rutina Full Body",
-  "descripcion": "Rutina completa",
-  "ejercicios": [
-    {
-      "exerciseId": "PEGAR_ID_AQUI",
-      "sets": 4,
-      "reps": 12,
-      "weight": 60,
-      "notes": "Incrementar peso"
-    }
-  ]
-}</textarea>
-                    <button onclick="createRoutine()">POST /routines/create</button>
-                    <div class="response" id="createRoutineResponse"></div>
-                </div>
-
-                <div class="endpoint">
+                        <div class="endpoint">
+                            <h3>Crear Rutina</h3>
+                            <form id="createRoutineForm">
+                                <input type="text" id="routineNombre" placeholder="Nombre" required>
+                                <input type="text" id="routineDescripcion" placeholder="Descripción (opcional)">
+                                <div id="routineExercises">
+                                    <h4>Ejercicios</h4>
+                                    <div class="routine-exercise">
+                                        <select class="exerciseId" required>
+                                            <option value="">Seleccionar ejercicio...</option>
+                                        </select>
+                                        <input type="number" class="sets" placeholder="Sets" min="1" required>
+                                        <input type="number" class="reps" placeholder="Reps" min="1" required>
+                                        <input type="number" class="weight" placeholder="Peso (opcional)">
+                                        <input type="text" class="notes" placeholder="Notas (opcional)">
+                                        <button type="button" class="removeExercise" onclick="this.parentElement.remove()">Quitar</button>
+                                    </div>
+                                </div>
+                                <button type="button" id="addExerciseBtn">Agregar ejercicio</button>
+                                <button type="submit">POST /routines/create</button>
+                            </form>
+                            <div class="response" id="createRoutineResponse"></div>
+                        </div>
                     <h3>Asignar Rutina a Usuario</h3>
                     <input type="text" id="assignUserId" placeholder="userId">
                     <input type="text" id="assignRoutineId" placeholder="routineId">
@@ -218,26 +238,29 @@
 
             <!-- ==================== PROGRESO ==================== -->
             <section class="section" id="progress">
-                <h2>📊 Progreso</h2>
-                
-                <div class="endpoint">
-                    <h3>Registrar Progreso</h3>
-                    <input type="text" id="progressUserId" placeholder="userId" style="width: 100%; margin-bottom: 10px;">
-                    <textarea id="logProgressBody" rows="12">{
-  "exercises": [
-    {
-      "exerciseId": "PEGAR_ID_AQUI",
-      "completedSets": 4,
-      "completedReps": 12,
-      "weight": 60,
-      "notes": "Excelente sesión"
-    }
-  ],
-  "notes": "Primera sesión completada"
-}</textarea>
-                    <button onclick="logProgress()">POST /routines/user/:userId/progress</button>
-                    <div class="response" id="logProgressResponse"></div>
-                </div>
+                                               <h2>📊 Progreso</h2> 
+                                               <div class="endpoint">
+                                                    <h3>Registrar Progreso</h3>
+                                                    <form id="logProgressForm">
+                                                        <input type="date" id="progressDate" placeholder="Fecha (opcional)">
+                                                        <div id="progressExercises">
+                                                            <h4>Ejercicios realizados</h4>
+                                                            <div class="progress-exercise">
+                                                                <select class="exerciseId" required><option value="">Seleccionar ejercicio...</option></select>
+                                                                <input type="number" class="completedSets" placeholder="Sets completados" min="0" required>
+                                                                <input type="number" class="completedReps" placeholder="Reps completadas (opcional)" min="0">
+                                                                <input type="number" class="weight" placeholder="Peso (opcional)">
+                                                                <input type="text" class="notes" placeholder="Notas (opcional)">
+                                                                <button type="button" class="removeProgressExercise" onclick="this.parentElement.remove()">Quitar</button>
+                                                            </div>
+                                                        </div>
+                                                        <button type="button" id="addProgressExerciseBtn">Agregar ejercicio</button>
+                                                        <input type="text" id="progressNotes" placeholder="Notas generales (opcional)">
+                                                        <button type="submit">POST /routines/progress</button>
+                                                    </form>
+                                                    <div class="response" id="logProgressResponse"></div>
+                                                </div>
+                                
             </section>
 
             <!-- ==================== RACHAS ==================== -->
@@ -273,13 +296,18 @@
                 
                 <div class="endpoint">
                     <h3>Crear Inscripción</h3>
-                    <textarea id="createRegistrationBody" rows="5">{
-  "userId": "USER_ID",
-  "gymId": "GYM_ID",
-  "membershipType": "monthly",
-  "startDate": "2025-01-01"
-}</textarea>
-                    <button onclick="createRegistration()">POST /registrations</button>
+                    <form id="createRegistrationForm">
+                        <input type="text" id="registrationUserId" placeholder="ID de usuario" required>
+                        <input type="text" id="registrationGymId" placeholder="ID de gimnasio" required>
+                        <select id="registrationMembershipType" required>
+                            <option value="">Tipo de membresía</option>
+                            <option value="monthly">Mensual</option>
+                            <option value="annual">Anual</option>
+                            <option value="weekly">Semanal</option>
+                        </select>
+                        <input type="date" id="registrationStartDate" placeholder="Fecha de inicio" required>
+                        <button type="submit">POST /registrations</button>
+                    </form>
                     <div class="response" id="createRegistrationResponse"></div>
                 </div>
 
@@ -311,13 +339,18 @@
                 
                 <div class="endpoint">
                     <h3>Procesar Pago</h3>
-                    <textarea id="processPaymentBody" rows="6">{
-  "userId": "USER_ID",
-  "amount": 5000,
-  "paymentMethod": "mercadopago",
-  "description": "Cuota mensual"
-}</textarea>
-                    <button onclick="processPayment()">POST /payments/process</button>
+                    <form id="processPaymentForm">
+                        <input type="text" id="paymentUserId" placeholder="ID de usuario" required>
+                        <input type="number" id="paymentAmount" placeholder="Monto" min="1" required>
+                        <select id="paymentMethod" required>
+                            <option value="">Método de pago</option>
+                            <option value="mercadopago">MercadoPago</option>
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                        </select>
+                        <input type="text" id="paymentDescription" placeholder="Descripción" required>
+                        <button type="submit">POST /payments/process</button>
+                    </form>
                     <div class="response" id="processPaymentResponse"></div>
                 </div>
 
@@ -341,20 +374,23 @@
                 <h2>💰 Finanzas</h2>
                 
                 <div class="endpoint">
-                    <h3>Obtener Configuración Financiera</h3>
-                    <button onclick="getFinanceSettings()">GET /finance/settings</button>
-                    <div class="response" id="getFinanceSettingsResponse"></div>
-                </div>
-
-                <div class="endpoint">
-                    <h3>Actualizar Configuración</h3>
-                    <textarea id="updateFinanceSettingsBody" rows="6">{
-  "monthlyFee": 5000,
-  "dueDay": 10,
-  "lateFee": 500,
-  "currency": "ARS"
-}</textarea>
-                    <button onclick="updateFinanceSettings()">PUT /finance/settings</button>
+                                        <form id="createRoutineForm">
+                                                <input type="text" id="routineNombre" placeholder="Nombre" required>
+                                                <input type="text" id="routineDescripcion" placeholder="Descripción (opcional)">
+                                                <div id="routineExercises">
+                                                        <h4>Ejercicios</h4>
+                                                        <div class="routine-exercise">
+                                                                <input type="text" class="exerciseId" placeholder="ID de ejercicio" required>
+                                                                <input type="number" class="sets" placeholder="Sets" min="1" required>
+                                                                <input type="number" class="reps" placeholder="Reps" min="1" required>
+                                                                <input type="number" class="weight" placeholder="Peso (opcional)">
+                                                                <input type="text" class="notes" placeholder="Notas (opcional)">
+                                                                <button type="button" class="removeExercise" onclick="this.parentElement.remove()">Quitar</button>
+                                                        </div>
+                                                </div>
+                                                <button type="button" id="addExerciseBtn">Agregar ejercicio</button>
+                                                <button type="submit">POST /routines/create</button>
+                                        </form>
                     <div class="response" id="updateFinanceSettingsResponse"></div>
                 </div>
 

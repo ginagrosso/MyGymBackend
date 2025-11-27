@@ -1,3 +1,92 @@
+/* ====== MODALES ====== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    background: rgba(0,0,0,0.4);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background: #fff;
+    margin: 10% auto;
+    padding: 40px 30px 30px 30px;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 32px rgba(102,126,234,0.25);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.modal-content h2 {
+    color: #667eea;
+    margin-bottom: 20px;
+}
+.modal-content form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.modal-content input {
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 15px;
+    margin-bottom: 0;
+}
+.modal-content button {
+    margin-top: 10px;
+}
+.close {
+    position: absolute;
+    top: 10px;
+    right: 18px;
+    font-size: 2rem;
+    color: #764ba2;
+    cursor: pointer;
+    font-weight: bold;
+    transition: color 0.2s;
+}
+.close:hover {
+    color: #667eea;
+}
+
+/* ====== LANDING PAGE ====== */
+.landing {
+    text-align: center;
+    padding: 50px 0 30px 0;
+    background: linear-gradient(135deg, #667eea11 0%, #764ba211 100%);
+    border-radius: 20px;
+    margin-bottom: 30px;
+}
+.landing h2 {
+    font-size: 2.2em;
+    color: #667eea;
+    margin-bottom: 10px;
+}
+.landing p {
+    font-size: 1.2em;
+    color: #444;
+    margin-bottom: 25px;
+}
+.landing-actions {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+.landing-actions button {
+    min-width: 150px;
+    font-size: 1.1em;
+    padding: 14px 0;
+}
 * {
     margin: 0;
     padding: 0;
