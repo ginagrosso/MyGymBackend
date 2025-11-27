@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-
     // MODALES Y LANDING
     // Modal Login
     const loginModal = document.getElementById('loginModal');
@@ -44,13 +43,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const password = document.getElementById('loginPassword').value;
             showLoading('loginModalResponse');
             const result = await makeRequest('/auth/login', 'POST', { email, password });
-            // Ocultar el token en la respuesta visual
+            // Ocultar el token en la respuesta visual, incluso si es el único campo o si la respuesta es un string
             let resultToShow = { ...result };
-            if (resultToShow.success && resultToShow.data && resultToShow.data.token) {
-                localStorage.setItem('token', resultToShow.data.token);
-                // Eliminar el token de la respuesta visual
-                const { token, ...rest } = resultToShow.data;
-                resultToShow = { ...resultToShow, data: rest };
+            if (resultToShow.success && resultToShow.data) {
+                // Si la respuesta es un string (ej: el token plano)
+                if (typeof resultToShow.data === 'string') {
+                    // Guardar el token pero no mostrarlo
+                    localStorage.setItem('token', resultToShow.data);
+                    resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
+                } else if (resultToShow.data.token) {
+                    localStorage.setItem('token', resultToShow.data.token);
+                    const keys = Object.keys(resultToShow.data);
+                    if (keys.length === 1 && keys[0] === 'token') {
+                        resultToShow = { ...resultToShow, data: { message: '¡Inicio de sesión exitoso!' } };
+                    } else {
+                        // Eliminar el token de la respuesta visual
+                        const { token, ...rest } = resultToShow.data;
+                        resultToShow = { ...resultToShow, data: rest };
+                    }
+                }
                 // Mostrar el botón de logout inmediatamente
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) logoutBtn.style.display = '';
@@ -341,7 +352,7 @@ if (loginSectionForm) {
             email: document.getElementById('loginSectionEmail').value,
             password: document.getElementById('loginSectionPassword').value
         };
-        const result = await makeRequest('/auth/auth/login', 'POST', body);
+        const result = await makeRequest('/auth/login', 'POST', body);
         showResponse('loginResponse', result);
         // Guardar token si login exitoso
         if (result.success && result.data && result.data.token) {
