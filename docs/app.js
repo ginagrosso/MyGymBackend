@@ -1,15 +1,16 @@
 // ==================== INICIALIZACIÓN UI ====================
+// Hacer updateLocalStorageDebug global
+function updateLocalStorageDebug() {
+    const debugToken = document.getElementById('debugToken');
+    const debugUserId = document.getElementById('debugUserId');
+    if (debugToken) debugToken.textContent = localStorage.getItem('token') || '(vacío)';
+    if (debugUserId) debugUserId.textContent = localStorage.getItem('userId') || '(vacío)';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-            // Mostrar localStorage en pantalla (debug)
-            function updateLocalStorageDebug() {
-                const debugToken = document.getElementById('debugToken');
-                const debugUserId = document.getElementById('debugUserId');
-                if (debugToken) debugToken.textContent = localStorage.getItem('token') || '(vacío)';
-                if (debugUserId) debugUserId.textContent = localStorage.getItem('userId') || '(vacío)';
-            }
-            updateLocalStorageDebug();
-            window.addEventListener('storage', updateLocalStorageDebug);
-            document.addEventListener('tokenChanged', updateLocalStorageDebug);
+    updateLocalStorageDebug();
+    window.addEventListener('storage', updateLocalStorageDebug);
+    document.addEventListener('tokenChanged', updateLocalStorageDebug);
         // Autocompletar campos userId si existe en localStorage
         const storedUserId = localStorage.getItem('userId');
         if (storedUserId) {
@@ -92,14 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (userId) {
                     localStorage.setItem('userId', userId);
                 }
+                // Actualizar debug y notificar cambio de token
+                updateLocalStorageDebug();
                 document.dispatchEvent(new Event('tokenChanged'));
                 // Mostrar el botón de logout inmediatamente
                 const logoutBtn = document.getElementById('logoutBtn');
                 if (logoutBtn) logoutBtn.style.display = '';
-                // Cerrar modal tras breve delay
-                setTimeout(() => { loginModal.style.display = 'none'; }, 800);
                 // Mostrar mensaje de éxito personalizado
                 showResponse('loginModalResponse', { success: true, data: { message: '¡Inicio de sesión exitoso!' } });
+                // Cerrar modal tras un delay más largo para que se vea el mensaje y se actualice el debug
+                setTimeout(() => { loginModal.style.display = 'none'; }, 1800);
                 return;
             }
             // Si no hay token pero hay mensaje, mostrar el mensaje
